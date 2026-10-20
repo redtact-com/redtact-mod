@@ -1,0 +1,17 @@
+.gradle/
+build/
+out/
+classes/
+run/
+bin/
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+hs_err_*.log
+replay_*.log
+logs/
+mods/
+.fabric/

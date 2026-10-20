@@ -1,0 +1,6 @@
+{
+  "$schema": "./overrides.schema.json",
+  "_comment": "Chunker に含まれない・または上書きしたい Bedrock → Java マッピング。chunker-mappings.json より優先される。",
+  "names": {},
+  "flatten": {}
+}

@@ -1,0 +1,11 @@
+{
+	"required": false,
+	"package": "com.redtact.live.gametest.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"McefWebGlMixin"
+	],
+	"injectors": {
+		"defaultRequire": 0
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"schemaVersion": 1,
+	"id": "redtact-live-gametest",
+	"version": "0.0.0",
+	"name": "redtact-live gametest",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": ["com.redtact.live.gametest.LiveClientGameTest", "com.redtact.live.gametest.SignInClientGameTest", "com.redtact.live.gametest.LibraryClientGameTest", "com.redtact.live.gametest.BrowserPerfClientGameTest", "com.redtact.live.gametest.PointerLockClientGameTest"]
+	},
+	"mixins": ["redtact-live-gametest.mixins.json"],
+	"depends": {
+		"redtact-live": "*"
+	}
+}

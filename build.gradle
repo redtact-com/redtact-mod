@@ -1,0 +1,124 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+repositories {
+	// Litematica と、それが使う malilib (任意の連携のためのコンパイル時だけ)。Modrinth Maven から取る
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = "Modrinth"
+				url = "https://api.modrinth.com/maven"
+			}
+		}
+		filter {
+			includeGroup "maven.modrinth"
+		}
+	}
+	// jcef の API (MCEF Modern が同梱しているもの)
+	mavenCentral()
+}
+
+base {
+	archivesName = 'redtact'
+}
+
+loom {
+	mods {
+		"redtact-live" {
+			sourceSet sourceSets.main
+		}
+	}
+
+	runs {
+		client {
+			// メモリの少ない環境向け
+			vmArgs "-Xmx2G"
+		}
+	}
+}
+
+fabricApi {
+	// 実ワールドでの通し確認 (./gradlew runClientGameTest)。実行ディレクトリは build/run/clientGameTest
+	configureTests {
+		createSourceSet = true
+		modId = "redtact-live-gametest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true // Minecraft EULA (https://aka.ms/MinecraftEULA) に同意する
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Litematica は任意 (入っていれば読み込んだ回路を配置にする)。コンパイル時だけ参照し、gametest の実行時には入れる。
+	// malilib はこの MOD 自身は使わない (#28)。Litematica の API が malilib の型を使うのでコンパイル時だけ参照し、
+	// gametest で Litematica を入れるときは一緒に入れる (Litematica が malilib を要る)。
+	// -PnoLitematica を付けると gametest から両方を外す (Litematica・malilib 無しでの起動と保存だけの経路を確かめる)
+	compileOnly "maven.modrinth:malilib:${project.malilib_version}"
+	compileOnly "maven.modrinth:litematica:${project.litematica_version}"
+	gametestCompileOnly "maven.modrinth:malilib:${project.malilib_version}"
+	gametestCompileOnly "maven.modrinth:litematica:${project.litematica_version}"
+
+	if (!project.hasProperty("noLitematica")) {
+		gametestRuntimeOnly "maven.modrinth:malilib:${project.malilib_version}"
+		gametestRuntimeOnly "maven.modrinth:litematica:${project.litematica_version}"
+	}
+
+	// MCEF Modern は任意 (入っていればメニューの redtact タブから redtact をゲーム内で開く。#46)。コンパイル時だけ参照する。
+	// -Pmcef を付けると gametest の実行時に入れる (初回は Chromium を取ってくるので時間がかかる)
+	compileOnly "maven.modrinth:mcef-modern:${project.mcef_modern_version}"
+	compileOnly "me.friwi:jcef-api:${project.jcef_api_version}"
+	gametestCompileOnly "maven.modrinth:mcef-modern:${project.mcef_modern_version}"
+	gametestCompileOnly "me.friwi:jcef-api:${project.jcef_api_version}"
+
+	if (project.hasProperty("mcef")) {
+		gametestRuntimeOnly "maven.modrinth:mcef-modern:${project.mcef_modern_version}"
+	}
+
+	testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+// jar に MIT のライセンスを入れる (#105。統合版の対応表の出典は assets/redtact-live/bedrock/NOTICE.md)
+jar {
+	from("LICENSE") {
+		rename { "${it}_${base.archivesName.get()}" }
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.encoding = "UTF-8"
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+test {
+	useJUnitPlatform()
+
+	// 中継サーバを相手にした通しの確認: ./gradlew test -PliveServer=http://localhost:8797
+	if (project.hasProperty("liveServer")) {
+		systemProperty "redtactLive.server", project.property("liveServer")
+		outputs.upToDateWhen { false }
+	}
+
+	// 未確認のホストを許さない中継サーバ (LIVE_ALLOW_UNVERIFIED_HOSTS なし) での確認: -PliveStrictServer=http://localhost:8799
+	if (project.hasProperty("liveStrictServer")) {
+		systemProperty "redtactLive.strictServer", project.property("liveStrictServer")
+	}
+}

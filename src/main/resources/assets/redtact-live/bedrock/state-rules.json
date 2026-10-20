@@ -1,0 +1,214 @@
+{
+  "$schema": "./state-rules.schema.json",
+  "_meta": {
+    "description": "Bedrock -> Java block-state conversion rules (data-driven).",
+    "matchTarget": "alias-applied Bedrock name",
+    "order": "common.keyAliases -> resolve Java name -> common.ops -> first matching rule (declaration order) -> common.dropKeys",
+    "verifiedAgainst": "GeyserMC/mappings blocks.nbt (Java 1.21.11) + real .mcstructure palettes"
+  },
+  "common": {
+    "keyAliases": {
+      "minecraft:cardinal_direction": "cardinal_direction",
+      "minecraft:facing_direction": "mc_facing_direction",
+      "minecraft:vertical_half": "vertical_half",
+      "minecraft:block_face": "block_face",
+      "minecraft:pillar_axis": "pillar_axis"
+    },
+    "ops": [
+      { "map": { "from": "facing_direction", "to": "facing", "keepUnmapped": true, "values": { "0": "down", "1": "up", "2": "north", "3": "south", "4": "west", "5": "east" } } },
+      { "rename": { "from": "mc_facing_direction", "to": "facing" } },
+      { "rename": { "from": "cardinal_direction", "to": "facing" } },
+      { "rename": { "from": "pillar_axis", "to": "axis" } },
+      { "map": { "from": "vertical_half", "to": "type", "default": "bottom", "values": { "top": "top", "bottom": "bottom" } } }
+    ],
+    "dropKeys": ["*update*", "age_bit", "age", "minecraft:*"]
+  },
+  "rules": [
+    { "match": "minecraft:redstone_torch", "ops": [
+      { "set": { "lit": "true" } },
+      { "wallVariant": { "from": "torch_facing_direction", "wall": "minecraft:redstone_wall_torch", "standing": "minecraft:redstone_torch", "flip": true } }
+    ] },
+    { "match": "minecraft:unlit_redstone_torch", "ops": [
+      { "set": { "lit": "false" } },
+      { "wallVariant": { "from": "torch_facing_direction", "wall": "minecraft:redstone_wall_torch", "standing": "minecraft:redstone_torch", "flip": true } }
+    ] },
+    { "match": "minecraft:torch", "ops": [
+      { "wallVariant": { "from": "torch_facing_direction", "wall": "minecraft:wall_torch", "standing": "minecraft:torch", "flip": true } }
+    ] },
+    { "match": "minecraft:soul_torch", "ops": [
+      { "wallVariant": { "from": "torch_facing_direction", "wall": "minecraft:soul_wall_torch", "standing": "minecraft:soul_torch", "flip": true } }
+    ] },
+
+    { "match": "minecraft:sticky_piston_arm_collision", "ops": [
+      { "setName": "minecraft:piston_head" },
+      { "set": { "type": "sticky" } },
+      { "setDefault": { "short": "false" } },
+      { "map": { "from": "facing", "to": "facing", "keepUnmapped": true, "values": { "north": "south", "south": "north", "east": "west", "west": "east" } } }
+    ] },
+    { "match": "minecraft:piston_arm_collision", "ops": [
+      { "setName": "minecraft:piston_head" },
+      { "setDefault": { "type": "normal", "short": "false" } },
+      { "map": { "from": "facing", "to": "facing", "keepUnmapped": true, "values": { "north": "south", "south": "north", "east": "west", "west": "east" } } }
+    ] },
+    { "match": "minecraft:sticky_piston", "ops": [
+      { "setDefault": { "extended": "false" } },
+      { "map": { "from": "facing", "to": "facing", "keepUnmapped": true, "values": { "north": "south", "south": "north", "east": "west", "west": "east" } } }
+    ] },
+    { "match": "minecraft:piston", "ops": [
+      { "setDefault": { "extended": "false" } },
+      { "map": { "from": "facing", "to": "facing", "keepUnmapped": true, "values": { "north": "south", "south": "north", "east": "west", "west": "east" } } }
+    ] },
+
+    { "match": "minecraft:powered_comparator", "ops": [
+      { "map": { "from": "output_subtract_bit", "to": "mode", "values": { "1": "subtract", "true": "subtract", "0": "compare", "false": "compare" } } },
+      { "mapBool": { "from": "output_lit_bit", "to": "powered" } },
+      { "map": { "from": "direction", "to": "facing", "values": { "0": "south", "1": "west", "2": "north", "3": "east" } } },
+      { "setDefault": { "mode": "compare", "powered": "true", "facing": "north" } }
+    ] },
+    { "match": "minecraft:unpowered_comparator", "ops": [
+      { "map": { "from": "output_subtract_bit", "to": "mode", "values": { "1": "subtract", "true": "subtract", "0": "compare", "false": "compare" } } },
+      { "mapBool": { "from": "output_lit_bit", "to": "powered" } },
+      { "map": { "from": "direction", "to": "facing", "values": { "0": "south", "1": "west", "2": "north", "3": "east" } } },
+      { "setDefault": { "mode": "compare", "powered": "false", "facing": "north" } }
+    ] },
+    { "match": "minecraft:powered_repeater", "ops": [
+      { "set": { "powered": "true" } },
+      { "map": { "from": "repeater_delay", "to": "delay", "values": { "0": "1", "1": "2", "2": "3", "3": "4" } } },
+      { "map": { "from": "direction", "to": "facing", "values": { "0": "south", "1": "west", "2": "north", "3": "east" } } },
+      { "setDefault": { "delay": "1", "locked": "false", "facing": "north" } }
+    ] },
+    { "match": "minecraft:unpowered_repeater", "ops": [
+      { "set": { "powered": "false" } },
+      { "map": { "from": "repeater_delay", "to": "delay", "values": { "0": "1", "1": "2", "2": "3", "3": "4" } } },
+      { "map": { "from": "direction", "to": "facing", "values": { "0": "south", "1": "west", "2": "north", "3": "east" } } },
+      { "setDefault": { "delay": "1", "locked": "false", "facing": "north" } }
+    ] },
+
+    { "match": "minecraft:observer", "ops": [
+      { "mapBool": { "from": "powered_bit", "to": "powered" } },
+      { "setDefault": { "powered": "false" } }
+    ] },
+
+    { "match": "minecraft:barrel", "ops": [
+      { "mapBool": { "from": "open_bit", "to": "open" } },
+      { "setDefault": { "open": "false" } }
+    ] },
+    { "match": "minecraft:dropper", "ops": [ { "mapBool": { "from": "triggered_bit", "to": "triggered" } } ] },
+    { "match": "minecraft:dispenser", "ops": [ { "mapBool": { "from": "triggered_bit", "to": "triggered" } } ] },
+    { "match": "minecraft:hopper", "ops": [ { "mapBool": { "from": "toggle_bit", "to": "enabled", "invert": true } } ] },
+
+    { "match": "minecraft:golden_rail", "ops": [
+      { "map": { "from": "rail_direction", "to": "shape", "values": { "0": "north_south", "1": "east_west", "2": "ascending_east", "3": "ascending_west", "4": "ascending_north", "5": "ascending_south" } } },
+      { "mapBool": { "from": "rail_data_bit", "to": "powered" } },
+      { "setDefault": { "powered": "false", "waterlogged": "false" } }
+    ] },
+    { "match": "minecraft:activator_rail", "ops": [
+      { "map": { "from": "rail_direction", "to": "shape", "values": { "0": "north_south", "1": "east_west", "2": "ascending_east", "3": "ascending_west", "4": "ascending_north", "5": "ascending_south" } } },
+      { "mapBool": { "from": "rail_data_bit", "to": "powered" } },
+      { "setDefault": { "powered": "false", "waterlogged": "false" } }
+    ] },
+    { "match": "minecraft:detector_rail", "ops": [
+      { "map": { "from": "rail_direction", "to": "shape", "values": { "0": "north_south", "1": "east_west", "2": "ascending_east", "3": "ascending_west", "4": "ascending_north", "5": "ascending_south" } } },
+      { "mapBool": { "from": "rail_data_bit", "to": "powered" } },
+      { "setDefault": { "powered": "false", "waterlogged": "false" } }
+    ] },
+    { "match": "minecraft:rail", "ops": [
+      { "map": { "from": "rail_direction", "to": "shape", "values": { "0": "north_south", "1": "east_west", "2": "ascending_east", "3": "ascending_west", "4": "ascending_north", "5": "ascending_south", "6": "south_east", "7": "south_west", "8": "north_west", "9": "north_east" } } },
+      { "setDefault": { "shape": "north_south", "waterlogged": "false" } }
+    ] },
+
+    { "match": "minecraft:lectern", "ops": [
+      { "map": { "from": "direction", "to": "facing", "values": { "0": "south", "1": "west", "2": "north", "3": "east" } } },
+      { "mapBool": { "from": "powered_bit", "to": "powered" } },
+      { "setDefault": { "facing": "north", "powered": "false", "has_book": "false" } }
+    ] },
+
+    { "match": "minecraft:redstone_wire", "ops": [
+      { "rename": { "from": "redstone_signal", "to": "power" } },
+      { "setDefault": { "east": "none", "north": "none", "south": "none", "west": "none", "power": "0" } }
+    ] },
+
+    { "match": "minecraft:lever", "ops": [
+      { "mapBool": { "from": "open_bit", "to": "powered" } },
+      { "map": { "from": "lever_direction", "values": {
+        "up_north_south": { "face": "floor", "facing": "north" },
+        "up_east_west": { "face": "floor", "facing": "east" },
+        "down_north_south": { "face": "ceiling", "facing": "north" },
+        "down_east_west": { "face": "ceiling", "facing": "east" },
+        "north": { "face": "wall", "facing": "north" },
+        "south": { "face": "wall", "facing": "south" },
+        "east": { "face": "wall", "facing": "east" },
+        "west": { "face": "wall", "facing": "west" }
+      } } },
+      { "setDefault": { "face": "wall", "facing": "north", "powered": "false" } }
+    ] },
+
+    { "match": "minecraft:tripwire_hook", "ops": [
+      { "map": { "from": "direction", "to": "facing", "values": { "0": "south", "1": "west", "2": "north", "3": "east" } } },
+      { "mapBool": { "from": "attached_bit", "to": "attached" } },
+      { "mapBool": { "from": "powered_bit", "to": "powered" } },
+      { "setDefault": { "facing": "north", "attached": "false", "powered": "false" } }
+    ] },
+
+    { "match": "minecraft:daylight_detector_inverted", "ops": [
+      { "rename": { "from": "redstone_signal", "to": "power" } },
+      { "set": { "inverted": "true" } },
+      { "setDefault": { "power": "0" } }
+    ] },
+    { "match": "minecraft:daylight_detector", "ops": [
+      { "rename": { "from": "redstone_signal", "to": "power" } },
+      { "setDefault": { "inverted": "false", "power": "0" } }
+    ] },
+
+    { "match": "minecraft:sculk_sensor", "ops": [
+      { "map": { "from": "sculk_sensor_phase", "to": "sculk_sensor_phase", "values": { "0": "inactive", "1": "active", "2": "cooldown" } } },
+      { "setDefault": { "sculk_sensor_phase": "inactive", "power": "0", "waterlogged": "false" } }
+    ] },
+
+    { "match": "minecraft:crafter", "ops": [
+      { "mapBool": { "from": "triggered_bit", "to": "triggered" } },
+      { "map": { "from": "crafting", "to": "crafting", "values": { "0": "false", "1": "true", "false": "false", "true": "true" } } },
+      { "setDefault": { "orientation": "north_up", "triggered": "false", "crafting": "false" } }
+    ] },
+
+    { "match": "minecraft:cauldron", "ops": [ { "drop": ["cauldron_liquid"] } ] },
+    { "match": "minecraft:lit_redstone_lamp", "ops": [ { "set": { "lit": "true" } } ] },
+    { "match": "minecraft:redstone_lamp", "ops": [ { "setDefault": { "lit": "false" } } ] },
+
+    { "match": "minecraft:*double_slab*", "ops": [
+      { "set": { "type": "double" } },
+      { "drop": ["top_slot_bit"] },
+      { "setDefault": { "waterlogged": "false" } }
+    ] },
+    { "match": "minecraft:*_slab", "ops": [
+      { "map": { "from": "top_slot_bit", "to": "type", "values": { "1": "top", "true": "top", "0": "bottom", "false": "bottom" } } },
+      { "setDefault": { "type": "bottom", "waterlogged": "false" } }
+    ] },
+    { "match": "minecraft:*button*", "ops": [
+      { "mapBool": { "from": "button_pressed_bit", "to": "powered" } },
+      { "map": { "from": "facing", "keepUnmapped": true, "values": {
+        "down": { "face": "ceiling", "facing": "north" },
+        "up": { "face": "floor", "facing": "north" }
+      } } },
+      { "setDefault": { "face": "wall" } }
+    ] },
+    { "match": "minecraft:*trapdoor*", "ops": [
+      { "map": { "from": "direction", "to": "facing", "values": { "0": "east", "1": "west", "2": "south", "3": "north" } } },
+      { "map": { "from": "upside_down_bit", "to": "half", "values": { "1": "top", "true": "top", "0": "bottom", "false": "bottom" } } },
+      { "mapBool": { "from": "open_bit", "to": "open" } },
+      { "setDefault": { "open": "false", "half": "bottom", "waterlogged": "false", "powered": "false" } }
+    ] },
+    { "match": "minecraft:*_stairs", "ops": [
+      { "map": { "from": "weirdo_direction", "to": "facing", "values": { "0": "east", "1": "west", "2": "south", "3": "north" } } },
+      { "map": { "from": "upside_down_bit", "to": "half", "values": { "1": "top", "true": "top", "0": "bottom", "false": "bottom" } } },
+      { "setDefault": { "facing": "north", "half": "bottom", "shape": "straight", "waterlogged": "false" } }
+    ] },
+    { "match": "minecraft:*_door", "ops": [
+      { "map": { "from": "facing", "to": "facing", "keepUnmapped": true, "values": { "east": "north", "west": "south", "north": "west", "south": "east" } } },
+      { "mapBool": { "from": "open_bit", "to": "open" } },
+      { "map": { "from": "upper_block_bit", "to": "half", "values": { "1": "upper", "true": "upper", "0": "lower", "false": "lower" } } },
+      { "map": { "from": "door_hinge_bit", "to": "hinge", "values": { "1": "right", "true": "right", "0": "left", "false": "left" } } },
+      { "setDefault": { "facing": "north", "half": "lower", "hinge": "left", "open": "false", "powered": "false" } }
+    ] }
+  ]
+}

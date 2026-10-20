@@ -1,0 +1,12 @@
+{
+  "$schema": "./fallbacks.schema.json",
+  "_comment": "Chunker/overrides/aliases で解決できなかった Bedrock ブロックの代替ルール。",
+  "defaultBlock": "minecraft:stone",
+  "_defaultBlockComment": "何にもマッチしなかったときに使う最終フォールバック（false=unknownブロックをそのまま同名にキャスト）",
+  "useIdentityFallback": true,
+  "_useIdentityFallbackComment": "true の場合、Chunker/overrides/aliases で解決できなくても 'minecraft:xxx' をそのまま Java 名として流用する（現在の実装踏襲）。false なら defaultBlock を使う。",
+  "stripPropertiesOnFallback": false,
+  "_stripPropertiesOnFallbackComment": "true の場合、identity fallback 時にプロパティを削除してミスマッチでの描画失敗を防ぐ。",
+  "logUnmapped": true,
+  "_logUnmappedComment": "true なら未マップブロック名を stderr に収集（テスト・デバッグ用）。本番では false 推奨。"
+}

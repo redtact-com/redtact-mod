@@ -1,0 +1,12 @@
+{
+  "$schema": "./aliases.schema.json",
+  "_comment": "Bedrock 旧ブロック名 → 新ブロック名の正規化テーブル。names/flatten 検索前に適用する。",
+  "bedrockAliases": {
+    "minecraft:concretePowder": "minecraft:concrete_powder",
+    "minecraft:stonebrick": "minecraft:stone_bricks",
+    "minecraft:wooden_slab": "minecraft:oak_slab",
+    "minecraft:wooden_pressure_plate": "minecraft:oak_pressure_plate",
+    "minecraft:wooden_button": "minecraft:oak_button",
+    "minecraft:hardened_clay": "minecraft:terracotta"
+  }
+}

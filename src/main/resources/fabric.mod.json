@@ -1,0 +1,30 @@
+{
+	"schemaVersion": 1,
+	"id": "redtact-live",
+	"version": "${version}",
+	"name": "redtact",
+	"description": "Open redtact, the redstone circuit sharing site, in game and keep circuits in a vault (placed with Litematica). Live-share a selected region to the web and get comments from viewers.",
+	"authors": ["redtact"],
+	"contact": {
+		"homepage": "https://redtact.com",
+		"sources": "https://github.com/redtact-com/redtact-mod",
+		"issues": "https://github.com/redtact-com/redtact-mod/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/redtact-live/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": ["com.redtact.live.RedtactLiveClient"]
+	},
+	"mixins": ["redtact-live.mixins.json", "redtact-live.mcef.mixins.json"],
+	"suggests": {
+		"litematica": ">=0.29.1",
+		"mcef-modern": ">=0.3.3"
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
