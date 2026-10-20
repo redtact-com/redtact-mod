@@ -2,6 +2,8 @@
 
 English | [日本語](#日本語)
 
+![The vault tab: a circuit file and its 3D preview](images/vault.png)
+
 A client-side Fabric mod for Minecraft: Java Edition 26.3 that connects your game to [redtact](https://redtact.com), a site for sharing redstone circuits.
 
 - **redtact in game**: open redtact from the mod menu (needs MCEF Modern) and download circuits straight into a vault folder (`schematics/redtact/`).
@@ -9,6 +11,28 @@ A client-side Fabric mod for Minecraft: Java Edition 26.3 that connects your gam
 - **Live sharing**: select a region with a feather, start a session, and the circuit appears on the web in real time. Viewers can comment, and you read and reply in game. You can also browse other people's live sessions, load them into Litematica (when the host allows copying), and branch from them.
 
 Open the menu with `R` + `L` (hold `R`, press `L`) or `/rlive menu`. The UI is available in English and Japanese.
+
+## Screenshots
+
+Select a region with a feather and start a live session. The HUD shows the session.
+
+![A circuit selected with the feather, with the live session HUD](images/world.png)
+
+Viewers see the circuit in 3D on the web and comment on it.
+
+![The live session page on the web with the circuit in 3D and comments](images/web-viewer.png)
+
+Read the comments and reply in game.
+
+![The comments tab in game with a reply from the host](images/comments.png)
+
+Browse live sessions, and load them into Litematica when the host allows copying.
+
+![The list of live sessions in game](images/live-list.png)
+
+Look at circuits in a full-screen 3D view (orbit, fly and top views, layer by layer, screenshots).
+
+![The full-screen 3D preview of a circuit](images/fullscreen-preview.png)
 
 ## Requirements
 
@@ -35,6 +59,7 @@ Most of the code in this mod was written by an AI coding assistant (Claude Code 
 
 With JDK 25: `./gradlew build` builds `build/libs/redtact-<version>.jar` and runs the unit tests.
 The client game tests (`./gradlew runClientGameTest`) for live sharing need the relay server, which is not in this repository. The vault tests run without it: `REDTACT_LIVE_LIBRARY_ONLY=1 ./gradlew runClientGameTest`.
+The screenshots in this README are taken by `REDTACT_LIVE_README_SHOTS=1 REDTACT_LIVE_SERVER=<relay> ./gradlew runClientGameTest` (in game) and from the web page of the same session.
 
 ## License
 
@@ -53,6 +78,28 @@ Not an official Minecraft product. Not approved by or associated with Mojang or 
 - **ライブ共有**: 羽根で範囲を選んでセッションを始めると、回路が Web にそのまま映ります。閲覧者のコメントをゲームの中で読み、返事を書けます。ほかの人のライブを見たり、Litematica に読み込んだり (ホストが複製を許可しているとき)、分岐したりもできます。
 
 メニューは `R` を押しながら `L` か `/rlive menu` で開きます。画面は日本語と英語に対応しています。
+
+### 画面
+
+羽根で範囲を選び、ライブ共有のセッションを始めます。HUD にセッションの様子が出ます。
+
+![羽根で選んだ回路とライブ共有の HUD](images/world.png)
+
+閲覧者は Web で回路を立体で見て、コメントできます。
+
+![Web のライブのページ (回路の立体とコメント)](images/web-viewer.png)
+
+コメントはゲームの中で読んで返事を書けます。
+
+![ゲームの中のコメントタブとホストの返事](images/comments.png)
+
+開催中のライブを一覧で探し、ホストが複製を許可していれば Litematica に読み込めます。
+
+![ゲームの中の開催中の一覧](images/live-list.png)
+
+回路を全画面の立体で見られます (回す・フライ・真上から・1 層ずつ・撮影)。
+
+![回路の全画面の立体のプレビュー](images/fullscreen-preview.png)
 
 ### 必要なもの
 
@@ -79,6 +126,7 @@ Not an official Minecraft product. Not approved by or associated with Mojang or 
 
 JDK 25 で `./gradlew build` を実行すると `build/libs/redtact-<版>.jar` ができ、単体テストも流れます。
 ライブ共有のクライアントのゲームテスト (`./gradlew runClientGameTest`) は中継サーバが要ります (このリポジトリには含みません)。保管庫のテストは中継サーバなしで動きます: `REDTACT_LIVE_LIBRARY_ONLY=1 ./gradlew runClientGameTest`
+この README の画面は `REDTACT_LIVE_README_SHOTS=1 REDTACT_LIVE_SERVER=<中継サーバ> ./gradlew runClientGameTest` (ゲームの中) と、同じセッションの Web のページで撮っています。
 
 ### ライセンス
 

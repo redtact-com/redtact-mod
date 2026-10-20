@@ -124,6 +124,12 @@ public class LiveClientGameTest implements FabricClientGameTest {
 			buildCircuit(sp);
 			context.waitTicks(10);
 
+			if (System.getenv("REDTACT_LIVE_README_SHOTS") != null) {
+				// README と Modrinth に載せる画面 (#105) だけを撮る (確かめはしない)
+				ReadmeShots.run(context, sp, server);
+				return;
+			}
+
 			if (liveLibraryOnly()) {
 				LOGGER.info("REDTACT_LIVE_LIVE_LIBRARY_ONLY なので開催中の回路を保管庫へ・redtact に投稿 (#73) だけを確かめる");
 				LiveLibraryChecks.run(context, sp, server);
