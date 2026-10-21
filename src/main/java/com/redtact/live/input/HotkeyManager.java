@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.redtact.live.compat.GameInput;
 import com.redtact.live.config.ConfigHotkey;
 import com.redtact.live.config.Configs;
 import org.slf4j.Logger;
@@ -98,7 +99,7 @@ public final class HotkeyManager {
 	/** 実際には押されていないキーを覚えから外す (窓の外で離した・画面を開いている間に離した)。 */
 	private static void prune() {
 		Minecraft mc = Minecraft.getInstance();
-		PRESSED.removeIf(code -> KeyNames.isMouse(code) ? !mouseDown(mc, KeyNames.mouseButton(code)) : !InputConstants.isKeyDown(code));
+		PRESSED.removeIf(code -> KeyNames.isMouse(code) ? !mouseDown(mc, KeyNames.mouseButton(code)) : !GameInput.isKeyDown(code));
 	}
 
 	private static boolean mouseDown(Minecraft mc, int button) {

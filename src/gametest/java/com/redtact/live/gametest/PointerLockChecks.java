@@ -18,7 +18,6 @@ import com.redtact.live.gui.MenuSection;
 import com.redtact.live.gui.MenuTab;
 import com.redtact.live.i18n.UiLanguage;
 import com.sun.net.httpserver.HttpServer;
-import org.lwjgl.sdl.SDLKeyboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,12 +146,13 @@ final class PointerLockChecks {
 		clickPage(context, 0.5, 0.5);
 		waitPage(context, mc -> hash(mc).startsWith("change:locked:0,0:1:1"), "押しても閉じ込めない");
 		check(context.computeOnClient(mc -> browser(mc).pointerLocked()), "ページは閉じ込めたのに MOD が閉じ込めていない");
-		check(!context.computeOnClient(PointerLockChecks::textInputActive), "閉じ込めている間も文字入力が有効 (日本語入力のままだと WASD が IME に取られる)");
+		check(!GameTestText.TEXT_INPUT_TOGGLES || !context.computeOnClient(PointerLockChecks::textInputActive),
+				"閉じ込めている間も文字入力が有効 (日本語入力のままだと WASD が IME に取られる)");
 		context.takeScreenshot("redtact-live-pointer-lock-1-locked");
 
 		// ---- 動かすと movementX / movementY が届く。量はカーソルを同じだけ動かしたとき (CSS の画素) と同じ
 		for (int i = 0; i < 3; i++) {
-			context.getInput().moveCursor(40, -16);
+			GameTestMouse.move(context, 40, -16);
 			context.waitTicks(2);
 		}
 
@@ -310,7 +310,7 @@ final class PointerLockChecks {
 		context.takeScreenshot("redtact-live-pointer-lock-real-2-locked");
 
 		for (int i = 0; i < 12; i++) {
-			context.getInput().moveCursor(16, 4);
+			GameTestMouse.move(context, 16, 4);
 			context.waitTicks(1);
 			frame.run();
 		}
@@ -380,7 +380,7 @@ final class PointerLockChecks {
 	}
 
 	private static boolean textInputActive(Minecraft mc) {
-		return SDLKeyboard.SDL_TextInputActive(mc.getWindow().handle());
+		return GameTestText.textInputActive(mc);
 	}
 
 	private static RedtactBrowserScreen browser(Minecraft mc) {

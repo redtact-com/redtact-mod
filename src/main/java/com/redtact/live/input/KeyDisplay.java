@@ -13,8 +13,11 @@ public final class KeyDisplay {
 
 	public static String name(int code) {
 		InputConstants.Key key = KeyNames.isMouse(code)
-				? InputConstants.Type.MOUSE.getOrCreate(KeyNames.mouseButton(code))
+				? InputConstants.Type.MOUSE.getOrCreate(KeyNames.gameButton(KeyNames.mouseButton(code)))
+				//? if >=26.3 {
 				: InputConstants.Type.KEYBOARD.getOrCreate(code);
+				//?} else
+				/*: InputConstants.Type.KEYSYM.getOrCreate(code);*/
 		return key.getDisplayName().getString();
 	}
 

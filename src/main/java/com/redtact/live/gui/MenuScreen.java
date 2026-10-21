@@ -3,6 +3,7 @@ package com.redtact.live.gui;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.redtact.live.compat.CompatButton;
 import com.redtact.live.RedtactLive;
 import com.redtact.live.browser.BrowserSupport;
 import com.redtact.live.gui.kit.ClipText;
@@ -15,7 +16,6 @@ import org.jspecify.annotations.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
@@ -347,7 +347,7 @@ public abstract class MenuScreen extends Screen {
 	}
 
 	/** メインタブ (redtact の階のボタン: ランプ + 名前 (+ 数)。いまの階はランプが点く)。 */
-	private static final class TabButton extends AbstractButton {
+	private static final class TabButton extends CompatButton {
 		private final MenuSection target;
 		private final boolean on;
 		private @Nullable String badge;
@@ -393,7 +393,7 @@ public abstract class MenuScreen extends Screen {
 	/**
 	 * 子タブの段を隠す・出すトグル。ヘッダのタブと同じ地に、自前で描いた三角 (▲ = 隠す・▼ = 出す。マイクラの字の三角は小さいので)。
 	 */
-	private static final class SubBarToggle extends AbstractButton {
+	private static final class SubBarToggle extends CompatButton {
 		private final boolean shown;
 		private final Runnable toggle;
 
@@ -436,7 +436,7 @@ public abstract class MenuScreen extends Screen {
 	 * その画面だけのヘッダの右端のトグル (#70)。段のトグルと同じ地にドット絵 ({@link Icon})。効いているときは
 	 * いまのメインタブと同じ押し込んだ面と明るい字の色。名前はツールチップの先頭に出す。
 	 */
-	private static final class HeaderIconToggle extends AbstractButton {
+	private static final class HeaderIconToggle extends CompatButton {
 		private final HeaderToggle spec;
 
 		HeaderIconToggle(int y, HeaderToggle spec) {
@@ -469,7 +469,7 @@ public abstract class MenuScreen extends Screen {
 	}
 
 	/** 子タブ (redtact の .el-tabbtn: 字だけ。いまの子タブは板の地・左上の明るい縁・銅の下線と銅の字)。 */
-	private static final class SubTabButton extends AbstractButton {
+	private static final class SubTabButton extends CompatButton {
 		private final MenuTab target;
 		private final boolean on;
 		private @Nullable String badge;

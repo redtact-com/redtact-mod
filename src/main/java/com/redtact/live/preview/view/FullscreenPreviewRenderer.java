@@ -5,8 +5,14 @@ import com.mojang.renderpearl.api.textures.GpuTextureView;
 import com.redtact.live.mixin.PictureInPictureRendererAccessor;
 import org.jspecify.annotations.Nullable;
 
+//? if <26.2 {
+/*import net.minecraft.client.Minecraft;
+*///?}
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+*///?}
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 
 /**
@@ -16,20 +22,31 @@ import net.minecraft.client.renderer.state.gui.GuiRenderState;
  *
  * <p>積んだものを描くときも全画面のカメラの投影と向きが要るので、{@link PreviewScene#beginFrame} から
  * {@link PreviewScene#endFrame} (バニラが積んだものを描き終えてから呼ぶ {@link #blitTexture}) まで、ゲームの投影などを
- * 全画面のカメラのものにしておく。
+ * 全画面のカメラのものにしておく。26.1 まではバニラが積んだものを描かないので、ゲームの置き場に積んで自分で描かせる (#112)。
  */
 public final class FullscreenPreviewRenderer extends PictureInPictureRenderer<FullscreenPreviewRenderState> {
 	private long drawnVersion = -1;
 	/** 描き始めて、まだ戻していない場面。 */
 	private @Nullable PreviewScene open;
 
+	//? if <26.2 {
+	/*public FullscreenPreviewRenderer(MultiBufferSource.BufferSource bufferSource) {
+		super(bufferSource);
+	}
+
+	*///?}
 	@Override
 	public Class<FullscreenPreviewRenderState> getRenderStateClass() {
 		return FullscreenPreviewRenderState.class;
 	}
 
 	@Override
+	//? if >=26.2 {
 	protected void renderToTexture(FullscreenPreviewRenderState state, PoseStack pose, SubmitNodeCollector out) {
+	//?} else {
+	/*protected void renderToTexture(FullscreenPreviewRenderState state, PoseStack pose) {
+		SubmitNodeCollector out = Minecraft.getInstance().gameRenderer.getFeatureRenderDispatcher().getSubmitNodeStorage();
+	*///?}
 		PictureInPictureRendererAccessor textures = (PictureInPictureRendererAccessor) (Object) this;
 		GpuTextureView color = textures.redtactLive$textureView();
 		GpuTextureView depth = textures.redtactLive$depthTextureView();
@@ -48,6 +65,9 @@ public final class FullscreenPreviewRenderer extends PictureInPictureRenderer<Fu
 		open = scene;
 		scene.drawMesh(color, depth);
 		scene.submitSpecials(out);
+		//? if <26.2 {
+		/*Minecraft.getInstance().gameRenderer.getFeatureRenderDispatcher().renderAllFeatures();
+		*///?}
 	}
 
 	@Override

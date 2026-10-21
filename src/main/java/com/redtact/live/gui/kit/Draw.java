@@ -10,7 +10,10 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+//? if >=26.1 {
 import net.minecraft.client.resources.model.sprite.SpriteId;
+//?} else
+/*import net.minecraft.client.resources.model.Material;*/
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -18,8 +21,14 @@ import net.minecraft.resources.Identifier;
 public final class Draw {
 	/** バッジの高さ。 */
 	public static final int BADGE_H = 11;
+	// ブロックの絵の部品の名前 (26.1 から SpriteId、1.21.x は Material)
+	//? if >=26.1 {
 	private static final SpriteId LAMP_OFF = new SpriteId(TextureAtlas.LOCATION_BLOCKS, Identifier.withDefaultNamespace("block/redstone_lamp"));
 	private static final SpriteId LAMP_ON = new SpriteId(TextureAtlas.LOCATION_BLOCKS, Identifier.withDefaultNamespace("block/redstone_lamp_on"));
+	//?} else {
+	/*private static final Material LAMP_OFF = new Material(TextureAtlas.LOCATION_BLOCKS, Identifier.withDefaultNamespace("block/redstone_lamp"));
+	private static final Material LAMP_ON = new Material(TextureAtlas.LOCATION_BLOCKS, Identifier.withDefaultNamespace("block/redstone_lamp_on"));
+	*///?}
 	/** 最後にツールチップに出した全文 (テスト用)。 */
 	private static volatile @Nullable String lastFullText;
 

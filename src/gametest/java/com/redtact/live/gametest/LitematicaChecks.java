@@ -57,8 +57,12 @@ final class LitematicaChecks {
 		}
 
 		Map<Integer, String> blockEntityIds = new TreeMap<>();
+		// 1.21.10 の Litematica はゲームの CompoundTag を返す (getString は Optional。#112)
 		schematic.getBlockEntityMapForRegion(region).forEach((pos, data) ->
+				//? if >=1.21.11 {
 				blockEntityIds.put((pos.getY() * sz + pos.getZ()) * sx + pos.getX(), data.getString("id")));
+				//?} else
+				/*blockEntityIds.put((pos.getY() * sz + pos.getZ()) * sx + pos.getX(), data.getStringOr("id", "")));*/
 
 		Path dir = p.getSchematicFile().getParent();
 		int same = (int) DataManager.getSchematicPlacementManager().getAllSchematicsPlacements().stream()

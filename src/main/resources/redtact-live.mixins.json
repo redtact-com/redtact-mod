@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "com.redtact.live.mixin",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "JAVA_${java_version}",
 	"client": [
 		"ClientLevelMixin",
 		"ClientPacketListenerMixin",
@@ -9,7 +9,7 @@
 		"KeyboardHandlerMixin",
 		"LevelMixin",
 		"MouseHandlerMixin",
-		"BlockModelRenderStateAccessor",
+		${version_mixins}
 		"PictureInPictureRendererAccessor"
 	],
 	"injectors": {

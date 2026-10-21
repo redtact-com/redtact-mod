@@ -1,7 +1,7 @@
 {
 	"required": false,
 	"package": "com.redtact.live.gametest.mixin",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "JAVA_${java_version}",
 	"client": [
 		"McefWebGlMixin"
 	],

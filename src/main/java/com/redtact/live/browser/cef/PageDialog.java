@@ -20,7 +20,9 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+//? if >=26.1 {
 import net.minecraft.client.input.PreeditEvent;
+//?}
 import net.minecraft.network.chat.Component;
 
 /**
@@ -256,9 +258,11 @@ final class PageDialog {
 		return true;
 	}
 
+	//? if >=26.1 {
 	boolean preeditUpdated(@Nullable PreeditEvent event) {
 		return field != null && field.preeditUpdated(event);
 	}
+	//?}
 
 	@Nullable RTextField field() {
 		return field;

@@ -10,7 +10,6 @@ import com.redtact.live.browser.cef.RedtactBrowserScreen;
 import com.redtact.live.gui.LibraryScreen;
 import com.redtact.live.gui.Menu;
 import com.redtact.live.gui.MenuSection;
-import org.lwjgl.sdl.SDLKeyboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,7 @@ final class CloseChecks {
 		// ---- ページが止めない: Esc ですぐ閉じる (Chromium がブラウザを閉じた知らせで。待ち切れずに閉じるのではない)
 		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
 		context.waitFor(mc -> mc.gui.screen() == null && !McefBridge.hasTabBrowser(), QUICK_TICKS);
-		check(!context.computeOnClient(CloseChecks::textInputActive), "メニューを閉じても SDL の文字入力が有効のまま");
+		check(!GameTestText.TEXT_INPUT_TOGGLES || !context.computeOnClient(CloseChecks::textInputActive), "メニューを閉じても SDL の文字入力が有効のまま");
 
 		// ---- 開き直し、ページを押してから (Chromium は押していないページの離脱の確認を出さない) 離脱を止める
 		context.runOnClient(mc -> Menu.openRedtact(page));
@@ -71,7 +70,7 @@ final class CloseChecks {
 		clickWidget(context, mc -> browser(mc).dialogButton(true));
 		context.waitFor(mc -> mc.gui.screen() == null && !McefBridge.hasTabBrowser(), LibraryClientGameTest.TIMEOUT);
 		check(!context.computeOnClient(mc -> McefBridge.closePending()), "閉じたのに閉じる頼みが残っている");
-		check(!context.computeOnClient(CloseChecks::textInputActive), "メニューを閉じても SDL の文字入力が有効のまま");
+		check(!GameTestText.TEXT_INPUT_TOGGLES || !context.computeOnClient(CloseChecks::textInputActive), "メニューを閉じても SDL の文字入力が有効のまま");
 		LOGGER.info("[mcef] メニューを閉じるときの確認: 止めないページはすぐ閉じる・キャンセルで残る・ほかのタブからも窓で閉じるを確かめた");
 	}
 
@@ -82,7 +81,7 @@ final class CloseChecks {
 	}
 
 	private static boolean textInputActive(Minecraft mc) {
-		return SDLKeyboard.SDL_TextInputActive(mc.getWindow().handle());
+		return GameTestText.textInputActive(mc);
 	}
 
 	private static RedtactBrowserScreen browser(Minecraft mc) {

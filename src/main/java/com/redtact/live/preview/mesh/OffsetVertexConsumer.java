@@ -11,6 +11,8 @@ final class OffsetVertexConsumer implements VertexConsumer {
 	private float ox;
 	private float oy;
 	private float oz;
+	/** 書いた頂点の数 (1.21.x の形の組み立てが面の数を数えるため。#112)。 */
+	private int vertices;
 
 	OffsetVertexConsumer(VertexConsumer delegate) {
 		this.delegate = delegate;
@@ -23,14 +25,21 @@ final class OffsetVertexConsumer implements VertexConsumer {
 		oz = z;
 	}
 
+	/** これまでに書いた頂点の数。 */
+	int vertices() {
+		return vertices;
+	}
+
 	@Override
 	public VertexConsumer addVertex(float x, float y, float z) {
+		vertices++;
 		delegate.addVertex(x + ox, y + oy, z + oz);
 		return this;
 	}
 
 	@Override
 	public void addVertex(float x, float y, float z, int color, float u, float v, int overlay, int light, float nx, float ny, float nz) {
+		vertices++;
 		delegate.addVertex(x + ox, y + oy, z + oz, color, u, v, overlay, light, nx, ny, nz);
 	}
 
@@ -64,11 +73,13 @@ final class OffsetVertexConsumer implements VertexConsumer {
 		return this;
 	}
 
+	//? if >=26.3 {
 	@Override
 	public VertexConsumer setUv3(float u, float v) {
 		delegate.setUv3(u, v);
 		return this;
 	}
+	//?}
 
 	@Override
 	public VertexConsumer setNormal(float x, float y, float z) {
@@ -76,9 +87,12 @@ final class OffsetVertexConsumer implements VertexConsumer {
 		return this;
 	}
 
+	// 線の太さは 1.21.11 から (#112)
+	//? if >=1.21.11 {
 	@Override
 	public VertexConsumer setLineWidth(float width) {
 		delegate.setLineWidth(width);
 		return this;
 	}
+	//?}
 }

@@ -79,10 +79,15 @@ final class FullscreenPreviewChecks {
 		open(context);
 		int fullQuads = waitMesh(context);
 		check(fullQuads > 50, "見本の形の面が少ない: " + fullQuads);
-		// チェスト・頭・ベル・エンチャントテーブルは描き足す (ホッパーは形に入る)
+		// チェスト・頭・ベル・エンチャントテーブルは描き足す (ホッパーは形に入る)。1.21.x のゲームにはベルの本体と
+		// エンチャントテーブルの本の特別な描き方が無い (ブロックの描き方では描かれない。#112)
 		List<String> specials = context.computeOnClient(mc -> java.util.Arrays.stream(screen(mc).scene().mesh().specialStates())
 				.map(st -> net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(st.getBlock()).getPath()).sorted().toList());
-		check(specials.equals(List.of("bell", "chest", "enchanting_table", "skeleton_skull")), "描き足すブロック: " + specials);
+		//? if >=26.1 {
+		List<String> expectedSpecials = List.of("bell", "chest", "enchanting_table", "skeleton_skull");
+		//?} else
+		/*List<String> expectedSpecials = List.of("chest", "skeleton_skull");*/
+		check(specials.equals(expectedSpecials), "描き足すブロック: " + specials + " 見込み " + expectedSpecials);
 		LOGGER.info("[fullscreen] 描き足すブロック: {}", specials);
 		String title = context.computeOnClient(mc -> screen(mc).getTitle().getString());
 		check(title.equals("g 見本.nbt"), "全画面の題が違う: " + title);
@@ -101,6 +106,13 @@ final class FullscreenPreviewChecks {
 		if (System.getenv("REDTACT_LIVE_FULLSCREEN_GIF") != null) {
 			gifFrames(context, dir.resolve(SHOWCASE));
 		}
+
+		// 保管庫の場所を一番上 (schematics/redtact/) に戻す。このあとの確認 (MCEF の取ってきたもの) は保管庫タブを開くと
+		// 一番上が出る前提 (戻さないと、見本のフォルダのまま開いて取ってきたものが無いと見える。#112 で見つけた)
+		context.runOnClient(mc -> {
+			LibraryNav.select(null);
+			LibraryNav.go(LibraryNav.libraryDir());
+		});
 	}
 
 	/**
@@ -258,7 +270,7 @@ final class FullscreenPreviewChecks {
 
 		// マウスで見回す (右へ動かすと右を向く = yaw が減る)
 		for (int i = 0; i < 3; i++) {
-			context.getInput().moveCursor(30, 0);
+			GameTestMouse.move(context, 30, 0);
 			context.waitTicks(2);
 		}
 
@@ -353,6 +365,7 @@ final class FullscreenPreviewChecks {
 		context.waitFor(mc -> screen(mc).lastCapture() != null, LibraryClientGameTest.TIMEOUT);
 		Path file = context.computeOnClient(mc -> screen(mc).lastCapture());
 
+		//? if >=26.3 {
 		// クリップボードにも同じ PNG (ゲームの窓の SDL で写す)
 		check(context.computeOnClient(mc -> screen(mc).copiedToClipboard()), "撮影をクリップボードに写せていない");
 		byte[] pasted = context.computeOnClient(mc -> ImageClipboard.pastePng());
@@ -363,6 +376,10 @@ final class FullscreenPreviewChecks {
 		} catch (IOException e) {
 			throw new AssertionError(e);
 		}
+		//?} else {
+		/*// 26.2 まで (GLFW) は絵をクリップボードに置けないので、ファイルに保存するだけ (#112)
+		check(!context.computeOnClient(mc -> screen(mc).copiedToClipboard()), "26.2 までなのにクリップボードに写したことになっている");
+		*///?}
 		int[] window = context.computeOnClient(mc -> new int[] {mc.getWindow().getWidth(), mc.getWindow().getHeight()});
 		check(file.getParent().getFileName().toString().equals("redtact") && file.getFileName().toString().startsWith("g 見本.nbt-"),
 				"撮影の置き場所: " + file);

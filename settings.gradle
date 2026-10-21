@@ -4,8 +4,26 @@ pluginManagement {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
 		}
+		// Stonecutter (1 つのソースから版ごとの jar) と loom-back-compat (難読化あり・なしの Loom を 1 つのビルドで) (#112)
+		maven {
+			name = 'KikuGie Releases'
+			url = 'https://maven.kikugie.dev/releases'
+		}
 		mavenCentral()
 		gradlePluginPortal()
+	}
+}
+
+plugins {
+	id 'dev.kikugie.stonecutter' version '0.9.8'
+	id 'dev.kikugie.loom-back-compat' version '0.4.3'
+}
+
+// 対応するマイクラの版。版ごとの依存は versions/<版>/gradle.properties (#112)
+stonecutter {
+	create(rootProject) {
+		versions '1.21.10', '1.21.11', '26.1.2', '26.2', '26.3'
+		vcsVersion = '26.3'
 	}
 }
 

@@ -4,7 +4,7 @@ English | [日本語](#日本語)
 
 ![The vault tab: a circuit file and its 3D preview](images/vault.png)
 
-A client-side Fabric mod for Minecraft: Java Edition 26.3 that connects your game to [redtact](https://redtact.com), a site for sharing redstone circuits.
+A client-side Fabric mod for Minecraft: Java Edition 1.21.10, 1.21.11 and 26.1–26.3 that connects your game to [redtact](https://redtact.com), a site for sharing redstone circuits.
 
 - **redtact in game**: open redtact from the mod menu (needs MCEF Modern) and download circuits straight into a vault folder (`schematics/redtact/`).
 - **Vault**: browse your schematic folders, search them, and look at circuits in 3D (a still image with rotate buttons, or a full-screen view with fly mode, layer-by-layer view, top view and screenshots). Place circuits with Litematica, or post your own circuit files to redtact.
@@ -36,8 +36,10 @@ Look at circuits in a full-screen 3D view (orbit, fly and top views, layer by la
 
 ## Requirements
 
-- Minecraft: Java Edition 26.3, Fabric Loader 0.19.5 or newer, [Fabric API](https://modrinth.com/mod/fabric-api)
-- Optional: [Litematica](https://modrinth.com/mod/litematica) 0.29.1+ (load circuits as placements)
+- Minecraft: Java Edition 1.21.10, 1.21.11, 26.1–26.1.2, 26.2 or 26.3 (download the jar for your version; the 26.1.2 jar is for all of 26.1.x), Fabric Loader 0.19.5 or newer, [Fabric API](https://modrinth.com/mod/fabric-api)
+- On 1.21.x, 26.1 and 26.2, screenshots from the full-screen preview are saved to a file only (copying the image to the clipboard needs 26.3)
+- On 1.21.x, the redtact tab does not show text being composed with an IME (only the committed text is sent), and bell bodies and enchanting table books are not drawn in 3D previews. On 1.21.10, the selection box is hidden behind blocks
+- Optional: [Litematica](https://modrinth.com/mod/litematica) for your Minecraft version (load circuits as placements)
 - Optional: [MCEF Modern](https://modrinth.com/mod/mcef-modern) 0.3.3+ (the redtact tab; MCEF Modern downloads Chromium the first time you use it)
 
 ## Network and data
@@ -57,7 +59,7 @@ Most of the code in this mod was written by an AI coding assistant (Claude Code 
 
 ## Building
 
-With JDK 25: `./gradlew build` builds `build/libs/redtact-<version>.jar` and runs the unit tests.
+With JDK 25: `./gradlew build` builds `versions/<minecraft>/build/libs/redtact-<version>+<minecraft>.jar` for every supported Minecraft version and runs the unit tests (one version only: `./gradlew :26.3:build`). The project uses [Stonecutter](https://stonecutter.kikugie.dev/) to build every Minecraft version from one source tree.
 The client game tests (`./gradlew runClientGameTest`) for live sharing need the relay server, which is not in this repository. The vault tests run without it: `REDTACT_LIVE_LIBRARY_ONLY=1 ./gradlew runClientGameTest`.
 The screenshots in this README are taken by `REDTACT_LIVE_README_SHOTS=1 REDTACT_LIVE_SERVER=<relay> ./gradlew runClientGameTest` (in game) and from the web page of the same session.
 
@@ -71,7 +73,7 @@ Not an official Minecraft product. Not approved by or associated with Mojang or 
 
 ## 日本語
 
-[redtact](https://redtact.com) (レッドストーン回路の共有サイト) とゲームをつなぐ、Minecraft: Java Edition 26.3 の Fabric のクライアント MOD です。
+[redtact](https://redtact.com) (レッドストーン回路の共有サイト) とゲームをつなぐ、Minecraft: Java Edition 1.21.10・1.21.11・26.1〜26.3 の Fabric のクライアント MOD です。
 
 - **ゲーム内の redtact**: MOD のメニューで redtact を開き (MCEF Modern が要ります)、回路を保管庫のフォルダ (`schematics/redtact/`) にそのままダウンロードできます。
 - **保管庫**: schematics のフォルダを行き来・検索し、回路を立体で見られます (回すボタン付きの静止画と、フライ・1 層ずつ・真上から・撮影ができる全画面)。Litematica で配置したり、自分の回路のファイルを redtact に投稿したりできます。
@@ -103,8 +105,10 @@ Not an official Minecraft product. Not approved by or associated with Mojang or 
 
 ### 必要なもの
 
-- Minecraft: Java Edition 26.3・Fabric Loader 0.19.5 以上・[Fabric API](https://modrinth.com/mod/fabric-api)
-- 任意: [Litematica](https://modrinth.com/mod/litematica) 0.29.1 以上 (回路を配置として読み込む)
+- Minecraft: Java Edition 1.21.10・1.21.11・26.1〜26.1.2・26.2・26.3 のどれか (版に合った jar を使います。26.1.2 の jar は 26.1.x の全部で使えます)・Fabric Loader 0.19.5 以上・[Fabric API](https://modrinth.com/mod/fabric-api)
+- 1.21.x・26.1・26.2 では、全画面のプレビューの撮影はファイルへの保存だけです (クリップボードへの写しは 26.3 だけ)
+- 1.21.x では、redtact タブで日本語の変換中の字が出ません (確定した字だけ送ります)。立体のプレビューにベルの本体とエンチャントテーブルの本が描かれません。1.21.10 では範囲の枠がブロックに隠れます
+- 任意: マイクラの版に合った [Litematica](https://modrinth.com/mod/litematica) (回路を配置として読み込む)
 - 任意: [MCEF Modern](https://modrinth.com/mod/mcef-modern) 0.3.3 以上 (redtact タブ。初めて使うときに MCEF Modern が Chromium をダウンロードします)
 
 ### 通信と送る情報
@@ -124,7 +128,7 @@ Not an official Minecraft product. Not approved by or associated with Mojang or 
 
 ### ビルド
 
-JDK 25 で `./gradlew build` を実行すると `build/libs/redtact-<版>.jar` ができ、単体テストも流れます。
+JDK 25 で `./gradlew build` を実行すると、対応するマイクラの版ごとに `versions/<マイクラの版>/build/libs/redtact-<版>+<マイクラの版>.jar` ができ、単体テストも流れます (1 つの版だけなら `./gradlew :26.3:build`)。1 つのソースから版ごとに作るのに [Stonecutter](https://stonecutter.kikugie.dev/) を使っています。
 ライブ共有のクライアントのゲームテスト (`./gradlew runClientGameTest`) は中継サーバが要ります (このリポジトリには含みません)。保管庫のテストは中継サーバなしで動きます: `REDTACT_LIVE_LIBRARY_ONLY=1 ./gradlew runClientGameTest`
 この README の画面は `REDTACT_LIVE_README_SHOTS=1 REDTACT_LIVE_SERVER=<中継サーバ> ./gradlew runClientGameTest` (ゲームの中) と、同じセッションの Web のページで撮っています。
 

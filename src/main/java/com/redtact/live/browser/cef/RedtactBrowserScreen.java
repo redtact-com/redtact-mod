@@ -9,6 +9,7 @@ import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.renderpearl.api.textures.GpuTextureView;
+import com.redtact.live.compat.GameInput;
 import com.redtact.live.RedtactLive;
 import com.redtact.live.browser.BrowserSupport;
 import com.redtact.live.config.Configs;
@@ -34,11 +35,21 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
+//? if >=26.1 {
 import net.minecraft.client.gui.components.IMEPreeditOverlay;
+//?}
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+//? if >=26.1 {
 import net.minecraft.client.input.PreeditEvent;
+//?}
+//? if <26.1 {
+/*import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.state.gui.BlitRenderState;
+import org.joml.Matrix3x2f;
+*///?}
 
 /**
  * メニューの「redtact」タブのゲーム内の redtact (#46・#51)。メインタブのヘッダの下の段に帯 (戻る・進む・更新・トップ・保管庫・
@@ -126,8 +137,11 @@ public final class RedtactBrowserScreen extends MenuScreen {
 	/** いまのページの欄の左端と右端 (保存中の数を出すときはその右から)。 */
 	private int urlX;
 	private int urlRight;
-	/** 日本語の変換中の字 (無ければ null)。 */
+	/** 日本語の変換中の字 (無ければ null)。1.21.x には変換中の字を知らせる口が無いので、いつも null (#112)。 */
+	//? if >=26.1 {
 	private @Nullable IMEPreeditOverlay preedit;
+	//?} else
+	/*private @Nullable Object preedit;*/
 	/** ページを最後に押した位置 (GUI の座標。変換中の字と候補の窓をここに出す)。まだ押していなければ -1。 */
 	private int caretX = -1;
 	private int caretY = -1;
@@ -198,7 +212,7 @@ public final class RedtactBrowserScreen extends MenuScreen {
 		browser.setFocus(true);
 
 		if (pointerLockSeq == 0) {
-			minecraft.textInputManager().startTextInput(this); // これが無いと字が届かない (#61)。閉じ込めている間は止めておく (#88)
+			GameInput.startTextInput(minecraft, this); // これが無いと字が届かない (#61)。閉じ込めている間は止めておく (#88)
 		}
 
 		back = null;
@@ -406,7 +420,14 @@ public final class RedtactBrowserScreen extends MenuScreen {
 		GpuTextureView view = browser == null ? null : browser.getTextureView();
 
 		if (view != null) {
+			// 1.21.x は GPU の絵を GUI に貼る口が private なので同じ中身を積む (1.21.10 までは絵の拡大縮小のしかたを絵の側に持つ)
+			//? if >=26.1 {
 			g.blit(view, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR), pageLeft(), pageTop(), width, height, 0f, 1f, 0f, 1f);
+			//?} elif >=1.21.11 {
+			/*g.guiRenderState.submitGuiElement(new BlitRenderState(RenderPipelines.GUI_TEXTURED, TextureSetup.singleTexture(view, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)), new Matrix3x2f(g.pose()), pageLeft(), pageTop(), width, height, 0f, 1f, 0f, 1f, -1, g.scissorStack.peek()));
+			*///?} else {
+			/*g.guiRenderState.submitGuiElement(new BlitRenderState(RenderPipelines.GUI_TEXTURED, TextureSetup.singleTexture(view), new Matrix3x2f(g.pose()), pageLeft(), pageTop(), width, height, 0f, 1f, 0f, 1f, -1, g.scissorStack.peek()));
+			*///?}
 		}
 
 		if (inPage(mouseX, mouseY) && browser != null && drag == null) {
@@ -439,10 +460,12 @@ public final class RedtactBrowserScreen extends MenuScreen {
 			}
 		}
 
+		//? if >=26.1 {
 		if (preedit != null) {
 			preedit.updateInputPosition(caretLeft(), caretTop());
 			g.setPreeditOverlay(preedit); // いちばん上に描かれる (候補の窓の位置もここで合わせる)
 		}
+		//?}
 
 		super.extractRenderState(g, mouseX, mouseY, a);
 
@@ -521,7 +544,7 @@ public final class RedtactBrowserScreen extends MenuScreen {
 			d.field().setFocused(false); // バニラが文字入力を止める
 		}
 
-		minecraft.textInputManager().startTextInput(this); // ページのために始め直す (#61)
+		GameInput.startTextInput(minecraft, this); // ページのために始め直す (#61)
 
 		// メニューを閉じるときの確認なら答えを渡す (閉じるならここでメニューが閉じる。#67)。文字入力より後に
 		if (d != null && d.closing()) {
@@ -560,6 +583,8 @@ public final class RedtactBrowserScreen extends MenuScreen {
 		return (caretY >= 0 ? caretY : pageTop() + PREEDIT_INPUT_H / 2) - PREEDIT_INPUT_H / 2;
 	}
 
+	// 変換中の字を知らせる口は 26.1 から (1.21.x では変換中の字はいつも無し。#112)
+	//? if >=26.1 {
 	@Override
 	public boolean preeditUpdated(@Nullable PreeditEvent event) {
 		if (dialog != null) {
@@ -574,6 +599,7 @@ public final class RedtactBrowserScreen extends MenuScreen {
 		preedit = event == null ? null : new IMEPreeditOverlay(event, font, PREEDIT_INPUT_H);
 		return true;
 	}
+	//?}
 
 	/** 変換中か (テスト用)。 */
 	public boolean composing() {
@@ -616,7 +642,7 @@ public final class RedtactBrowserScreen extends MenuScreen {
 		setFocused(null); // 保管庫のパス欄から外す
 
 		if (pointerLockSeq == 0) {
-			minecraft.textInputManager().startTextInput(this); // パス欄が外れるとバニラが文字入力を止めるので、ページのために始め直す (#61)
+			GameInput.startTextInput(minecraft, this); // パス欄が外れるとバニラが文字入力を止めるので、ページのために始め直す (#61)
 		}
 
 		pressedInPage = true;
@@ -627,7 +653,9 @@ public final class RedtactBrowserScreen extends MenuScreen {
 		// 入力欄を押したとみなし、日本語の変換の候補の窓をここに出す (どこを押したかはページに聞けないので、押した位置で)
 		caretX = (int) event.x();
 		caretY = (int) event.y();
+		//? if >=26.1 {
 		minecraft.textInputManager().setTextInputArea(caretLeft(), caretTop(), caretLeft() + 1, caretTop() + PREEDIT_INPUT_H);
+		//?}
 		return true;
 	}
 
@@ -762,7 +790,10 @@ public final class RedtactBrowserScreen extends MenuScreen {
 
 			// Enter は押下のあとに字 (\r) も送る (Windows と同じ。フォームの送信や改行は字のほうで起きる。文字入力では届かない)
 			if ((event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER) && !event.hasControlDown() && !event.hasAltDown()) {
+				//? if >=26.1 {
 				browser.onCharTyped(new CharacterEvent('\r'));
+				//?} else
+				/*browser.onCharTyped(new CharacterEvent('\r', 0));*/
 			}
 		}
 
@@ -880,10 +911,10 @@ public final class RedtactBrowserScreen extends MenuScreen {
 		if (!moving) {
 			pointerLockX = x;
 			pointerLockY = y;
-			PointerCapture.begin();
-			InputConstants.grabMouse(window, x, y); // その場で相対モードに (ゲームの MouseHandler#grabMouse は画面を閉じるので使わない)
+			PointerCapture.begin(x, y);
+			GameInput.grabMouse(window, x, y); // その場で相対モードに (ゲームの MouseHandler#grabMouse は画面を閉じるので使わない)
 			preedit = null;
-			minecraft.textInputManager().stopTextInput(this); // 日本語入力のままでも WASD がページに届くように
+			GameInput.stopTextInput(minecraft, this); // 日本語入力のままでも WASD がページに届くように
 		}
 
 		pointerLockSeq = seq;
@@ -903,10 +934,10 @@ public final class RedtactBrowserScreen extends MenuScreen {
 
 		pointerLockSeq = 0;
 		PointerCapture.end();
-		InputConstants.releaseMouse(minecraft.getWindow(), pointerLockX, pointerLockY);
+		GameInput.releaseMouse(minecraft.getWindow(), pointerLockX, pointerLockY);
 
 		if (restartTextInput) {
-			minecraft.textInputManager().startTextInput(this);
+			GameInput.startTextInput(minecraft, this);
 		}
 
 		if (tellPage && browser != null) {

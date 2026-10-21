@@ -103,7 +103,10 @@ public final class LibraryActions {
 
 	private static void openWithSystem(Path dir) {
 		try {
+			//? if >=26.3 {
 			Blaze3D.openPath(dir);
+			//?} else
+			/*net.minecraft.util.Util.getPlatform().openPath(dir);*/
 		} catch (RuntimeException ex) {
 			Messages.error(Tr.f("フォルダを開けません: {0}", ex.getMessage()));
 		}

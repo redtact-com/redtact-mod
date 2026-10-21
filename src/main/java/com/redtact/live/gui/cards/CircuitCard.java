@@ -1,5 +1,6 @@
 package com.redtact.live.gui.cards;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.function.Consumer;
 
 import com.redtact.live.RedtactLive;
@@ -94,7 +95,7 @@ public final class CircuitCard extends MenuCard {
 			return true;
 		}
 
-		if (event.button() != 1 || !pickable()) {
+		if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || !pickable()) {
 			return false;
 		}
 

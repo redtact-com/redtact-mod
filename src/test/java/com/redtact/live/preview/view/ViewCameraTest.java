@@ -159,18 +159,21 @@ class ViewCameraTest {
 		assertEquals(span * 0.88F, c.topSpan(), EPS);
 	}
 
-	/** 深度はゲームと同じ逆向き (近いほど大きい)。透視と正射影のどちらも。 */
+	/** 深度の向き: reversed (ゲームは 26.2 から) なら近いほど大きく、そうでなければ近いほど小さい (#112)。透視と正射影のどちらも。 */
 	@Test
-	void depthIsReversed() {
-		for (ViewCamera.Mode mode : new ViewCamera.Mode[] {ViewCamera.Mode.ORBIT, ViewCamera.Mode.TOP}) {
-			ViewCamera c = camera();
-			c.setMode(mode);
-			Matrix4f m = new Matrix4f(c.projection(1600, 900, true)).mul(c.view());
-			Vector3f d = c.direction();
-			float near = depth(m, new Vector3f(d).mul(2));
-			float far = depth(m, new Vector3f(d).mul(50));
-			assertTrue(near > far, mode + ": 近い " + near + " / 遠い " + far);
-			assertTrue(near <= 1 && far >= 0, mode + ": 0〜1 に入らない " + near + " " + far);
+	void depthFollowsTheGamesDirection() {
+		for (boolean reversed : new boolean[] {true, false}) {
+			for (ViewCamera.Mode mode : new ViewCamera.Mode[] {ViewCamera.Mode.ORBIT, ViewCamera.Mode.TOP}) {
+				ViewCamera c = camera();
+				c.setMode(mode);
+				Matrix4f m = new Matrix4f(c.projection(1600, 900, true, reversed)).mul(c.view());
+				Vector3f d = c.direction();
+				float near = depth(m, new Vector3f(d).mul(2));
+				float far = depth(m, new Vector3f(d).mul(50));
+				String what = mode + (reversed ? " (逆向き)" : "") + ": 近い " + near + " / 遠い " + far;
+				assertTrue(reversed ? near > far : near < far, what);
+				assertTrue(near >= 0 && near <= 1 && far >= 0 && far <= 1, what + " が 0〜1 に入らない");
+			}
 		}
 	}
 

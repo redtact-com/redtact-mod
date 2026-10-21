@@ -10,15 +10,24 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexSorting;
-import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.redtact.live.compat.GpuCompat;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.jspecify.annotations.Nullable;
 
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
 import net.minecraft.client.renderer.block.BlockModelLighter;
 import net.minecraft.client.renderer.block.BlockQuadOutput;
 import net.minecraft.client.renderer.block.BlockStateModelSet;
 import net.minecraft.client.renderer.block.FluidRenderer;
+//?} else {
+/*import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.block.model.BlockModelPart;
+import net.minecraft.util.RandomSource;
+*///?}
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.core.BlockPos;
@@ -74,28 +83,43 @@ public final class CircuitMesh implements AutoCloseable {
 	public static CircuitMesh build(CircuitGrid grid, int yMin, int yMax, @Nullable Biome biome, float sortX, float sortY, float sortZ,
 			Set<BlockState> specials) {
 		Minecraft mc = Minecraft.getInstance();
+		//? if >=26.1 {
 		BlockStateModelSet blockModels = mc.getModelManager().getBlockStateModelSet();
 		boolean ambientOcclusion = mc.options.ambientOcclusion().get();
 		boolean cutoutLeaves = mc.options.cutoutLeaves().get();
 		ModelBlockRenderer blockRenderer = new ModelBlockRenderer(ambientOcclusion, true, mc.getBlockColors());
 		FluidRenderer fluidRenderer = new FluidRenderer(mc.getModelManager().getFluidStateModelSet());
+		//?} else {
+		/*// 1.21.x: ゲームの区画の組み立て (SectionCompiler) と同じく、ブロックごとに層を選んで BlockRenderDispatcher で書く。
+		// 面ごとの知らせが無いので、面の数は書いた頂点の数で数える (#112)
+		BlockRenderDispatcher blockRenderer = mc.getBlockRenderer();
+		RandomSource random = RandomSource.create();
+		List<BlockModelPart> parts = new ArrayList<>();
+		PoseStack pose = new PoseStack();
+		Map<ChunkSectionLayer, OffsetVertexConsumer> modelBuilders = new EnumMap<>(ChunkSectionLayer.class);
+		*///?}
 		CircuitBlockGetter level = new CircuitBlockGetter(grid, yMin, yMax, biome);
 		Map<ChunkSectionLayer, ByteBufferBuilder> allocators = new EnumMap<>(ChunkSectionLayer.class);
 		Map<ChunkSectionLayer, BufferBuilder> builders = new EnumMap<>(ChunkSectionLayer.class);
 		Map<ChunkSectionLayer, OffsetVertexConsumer> fluidBuilders = new EnumMap<>(ChunkSectionLayer.class);
 		int[] quadCount = {0};
+		//? if >=26.1 {
 		BlockQuadOutput output = (x, y, z, quad, instance) -> {
-			count(quadCount);
+			count(quadCount, 1);
 			builder(builders, allocators, quad.materialInfo().layer()).putBlockBakedQuad(x, y, z, quad, instance);
 		};
 		BlockQuadOutput opaqueOutput = (x, y, z, quad, instance) -> {
-			count(quadCount);
+			count(quadCount, 1);
 			builder(builders, allocators, ChunkSectionLayer.SOLID).putBlockBakedQuad(x, y, z, quad, instance);
 		};
+		//?}
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		IntArrayList specialPositions = new IntArrayList();
 		List<BlockState> specialStates = new ArrayList<>();
+		//? if >=26.1 {
 		BlockModelLighter.enableCaching();
+		//?} else
+		/*ModelBlockRenderer.enableCaching();*/
 
 		try {
 			for (int y = Math.max(0, yMin); y <= Math.min(grid.sizeY() - 1, yMax); y++) {
@@ -121,17 +145,38 @@ public final class CircuitMesh implements AutoCloseable {
 							int fx = x;
 							int fy = y;
 							int fz = z;
+							//? if >=26.1 {
 							fluidRenderer.tesselate(level, pos, layer -> {
 								OffsetVertexConsumer c = fluidBuilders.computeIfAbsent(layer,
 										l -> new OffsetVertexConsumer(builder(builders, allocators, l)));
 								c.offset(fx & ~15, fy & ~15, fz & ~15);
 								return c;
 							}, state, fluid);
+							//?} else {
+							/*OffsetVertexConsumer c = fluidBuilders.computeIfAbsent(ItemBlockRenderTypes.getRenderLayer(fluid),
+									l -> new OffsetVertexConsumer(builder(builders, allocators, l)));
+							c.offset(fx & ~15, fy & ~15, fz & ~15);
+							blockRenderer.renderLiquid(pos, level, c, state, fluid);
+							*///?}
 						}
 
 						if (state.getRenderShape() == RenderShape.MODEL) {
+							//? if >=26.1 {
 							blockRenderer.tesselateBlock(ModelBlockRenderer.forceOpaque(cutoutLeaves, state) ? opaqueOutput : output, x, y, z, level, pos,
 									state, blockModels.get(state), state.getSeed(pos));
+							//?} else {
+							/*OffsetVertexConsumer out = modelBuilders.computeIfAbsent(ItemBlockRenderTypes.getChunkRenderType(state),
+									l -> new OffsetVertexConsumer(builder(builders, allocators, l)));
+							int before = out.vertices();
+							random.setSeed(state.getSeed(pos));
+							blockRenderer.getBlockModel(state).collectParts(random, parts);
+							pose.pushPose();
+							pose.translate(x, y, z);
+							blockRenderer.renderBatched(state, pos, level, pose, out, true, parts);
+							pose.popPose();
+							parts.clear();
+							count(quadCount, (out.vertices() - before) / 4);
+							*///?}
 						}
 					}
 				}
@@ -140,7 +185,10 @@ public final class CircuitMesh implements AutoCloseable {
 			allocators.values().forEach(ByteBufferBuilder::close); // 途中でやめた (面が多すぎるなど): 置き場を返す
 			throw e;
 		} finally {
+			//? if >=26.1 {
 			BlockModelLighter.clearCache();
+			//?} else
+			/*ModelBlockRenderer.clearCache();*/
 		}
 
 		EnumMap<ChunkSectionLayer, MeshData> meshes = new EnumMap<>(ChunkSectionLayer.class);
@@ -164,16 +212,22 @@ public final class CircuitMesh implements AutoCloseable {
 				specialStates.toArray(BlockState[]::new));
 	}
 
-	private static void count(int[] quads) {
-		if (++quads[0] > MAX_QUADS) {
+	private static void count(int[] quads, int n) {
+		quads[0] += n;
+
+		if (quads[0] > MAX_QUADS) {
 			throw new TooManyQuadsException();
 		}
 	}
 
 	private static BufferBuilder builder(Map<ChunkSectionLayer, BufferBuilder> builders, Map<ChunkSectionLayer, ByteBufferBuilder> allocators,
 			ChunkSectionLayer layer) {
+		// 頂点の形は層ごと (1.21.x はどの層も同じ)
 		return builders.computeIfAbsent(layer, l -> new BufferBuilder(allocators.computeIfAbsent(l, k -> new ByteBufferBuilder(INITIAL_BYTES)),
-				PrimitiveTopology.QUADS, l.vertexFormat()));
+				//? if >=26.1 {
+				GpuCompat.QUADS, l.vertexFormat()));
+				//?} else
+				/*GpuCompat.QUADS, DefaultVertexFormat.BLOCK));*/
 	}
 
 	Map<ChunkSectionLayer, MeshData> layers() {

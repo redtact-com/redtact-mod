@@ -132,7 +132,10 @@ public final class AutoSync implements SessionManager.PushListener {
 	public void onChunkLoad(ClientLevel level, LevelChunk chunk) {
 		Watch w = watch;
 
+		//? if >=26.1 {
 		if (w != null && level.dimension().equals(w.dimension()) && w.overlapsChunk(chunk.getPos().x(), chunk.getPos().z())) {
+		//?} else
+		/*if (w != null && level.dimension().equals(w.dimension()) && w.overlapsChunk(chunk.getPos().x, chunk.getPos().z)) {*/
 			debouncer.markChanged(System.currentTimeMillis());
 		}
 	}

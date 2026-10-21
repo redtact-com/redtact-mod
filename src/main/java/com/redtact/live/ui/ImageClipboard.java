@@ -4,11 +4,13 @@ import java.nio.ByteBuffer;
 
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.PointerBuffer;
+//? if >=26.3 {
 import org.lwjgl.sdl.SDLClipboard;
 import org.lwjgl.sdl.SDLError;
 import org.lwjgl.sdl.SDLStdinc;
 import org.lwjgl.sdl.SDL_ClipboardCleanupCallback;
 import org.lwjgl.sdl.SDL_ClipboardDataCallback;
+//?}
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
@@ -19,17 +21,21 @@ import org.slf4j.LoggerFactory;
  * SDL 3.4 は Windows では PNG の形式 (アプリが読む "PNG")、Linux と macOS では image/png で置く。
  *
  * <p>写した中身は、ほかのものが写されるまで SDL が取りにくるので、それまで手元に持つ (描画のスレッドだけで使う)。
+ *
+ * <p>26.2 まで (GLFW) は絵をクリップボードに置く口が無いので、写さずに false を返す (撮影はファイルに保存するだけ。#112)。
  */
 public final class ImageClipboard {
 	private static final Logger LOGGER = LoggerFactory.getLogger("redtact-live");
 	private static final String PNG = "image/png";
-	/** いまクリップボードに置いている中身 (無ければ null)。 */
-	private static @Nullable Held held;
 
 	private ImageClipboard() {
 	}
 
-	/** SDL に渡した中身とその呼び口。呼び口は SDL が手放してから (次に写したとき) 片付ける。 */
+	//? if >=26.3 {
+	// いまクリップボードに置いている中身 (無ければ null)
+	private static @Nullable Held held;
+
+	// SDL に渡した中身とその呼び口。呼び口は SDL が手放してから (次に写したとき) 片付ける
 	private static final class Held {
 		final SDL_ClipboardDataCallback data;
 		final SDL_ClipboardCleanupCallback cleanup;
@@ -51,7 +57,7 @@ public final class ImageClipboard {
 			this.cleanup = SDL_ClipboardCleanupCallback.create(userdata -> releaseBytes());
 		}
 
-		/** 中身を捨てる (SDL が手放した・写せなかった)。 */
+		// 中身を捨てる (SDL が手放した・写せなかった)
 		void releaseBytes() {
 			ByteBuffer b = bytes;
 			bytes = null;
@@ -67,9 +73,11 @@ public final class ImageClipboard {
 			cleanup.free();
 		}
 	}
+	//?}
 
 	/** PNG のバイト列を写す (描画のスレッドから)。写せたら true (写せなければ理由をログに出して false)。 */
 	public static boolean copyPng(byte[] png) {
+		//? if >=26.3 {
 		ByteBuffer bytes = MemoryUtil.memAlloc(png.length);
 		bytes.put(png).flip();
 		Held next = new Held(bytes);
@@ -110,10 +118,13 @@ public final class ImageClipboard {
 
 		next.free();
 		return false;
+		//?} else
+		/*return false;*/
 	}
 
 	/** クリップボードに置いてある PNG (テスト用。無ければ null)。 */
 	public static byte @Nullable [] pastePng() {
+		//? if >=26.3 {
 		if (!SDLClipboard.SDL_HasClipboardData(PNG)) {
 			return null;
 		}
@@ -131,5 +142,7 @@ public final class ImageClipboard {
 		} finally {
 			SDLStdinc.SDL_free(b);
 		}
+		//?} else
+		/*return null;*/
 	}
 }

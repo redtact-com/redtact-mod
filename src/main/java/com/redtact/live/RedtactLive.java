@@ -3,6 +3,7 @@ package com.redtact.live;
 import java.nio.file.Path;
 import java.util.function.BooleanSupplier;
 
+import com.redtact.live.compat.WorldGizmos;
 import com.redtact.live.branch.BranchManager;
 import com.redtact.live.browser.BrowserSupport;
 import com.redtact.live.command.RliveCommand;
@@ -59,7 +60,10 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+//? if >=26.1 {
 import net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegistry;
+//?} else
+/*import net.fabricmc.fabric.api.client.rendering.v1.SpecialGuiElementRegistry;*/
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
@@ -140,10 +144,19 @@ public final class RedtactLive {
 		Configs.loadFromFile();
 		KeyCallbacks.init();
 		HudRenderer.register();
-		// 「開催中」タブの回路のプレビュー (#34)
+		WorldGizmos.register(); // 範囲の枠と名前 (1.21.10 は自分で描く。#112)
+		// 「開催中」タブの回路のプレビュー (#34) と全画面のプレビュー (#102)。26.1 までは描く先のまとめ (bufferSource) を渡して作る。
+		// 1.21.x の Fabric API では登録の口の名前が SpecialGuiElementRegistry (#112)
+		//? if >=26.2 {
 		PictureInPictureRendererRegistry.register(context -> new CircuitPreviewRenderer());
-		// 全画面のプレビュー (#102)
 		PictureInPictureRendererRegistry.register(context -> new FullscreenPreviewRenderer());
+		//?} elif >=26.1 {
+		/*PictureInPictureRendererRegistry.register(context -> new CircuitPreviewRenderer(context.bufferSource()));
+		PictureInPictureRendererRegistry.register(context -> new FullscreenPreviewRenderer(context.bufferSource()));
+		*///?} else {
+		/*SpecialGuiElementRegistry.register(context -> new CircuitPreviewRenderer(context.vertexConsumers()));
+		SpecialGuiElementRegistry.register(context -> new FullscreenPreviewRenderer(context.vertexConsumers()));
+		*///?}
 		ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
 		ClientChunkEvents.CHUNK_LOAD.register(autoSync::onChunkLoad);
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) -> RliveCommand.register(dispatcher, this));

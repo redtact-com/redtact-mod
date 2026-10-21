@@ -234,7 +234,10 @@ public final class BrowserSupport {
 
 	private static void openWithSystem(String url) {
 		try {
+			//? if >=26.3 {
 			Blaze3D.openUri(URI.create(url));
+			//?} else
+			/*net.minecraft.util.Util.getPlatform().openUri(URI.create(url));*/
 		} catch (RuntimeException e) {
 			Messages.error(Tr.f("ブラウザを開けません: {0}", e.getMessage()));
 		}

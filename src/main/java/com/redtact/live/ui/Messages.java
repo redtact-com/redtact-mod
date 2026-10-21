@@ -50,7 +50,10 @@ public final class Messages {
 		Minecraft mc = Minecraft.getInstance();
 		mc.execute(() -> {
 			if (mc.player != null) {
+				//? if >=26.1 {
 				mc.player.sendOverlayMessage(Component.literal("redtact: " + text).withStyle(ChatFormatting.GRAY));
+				//?} else
+				/*mc.player.displayClientMessage(Component.literal("redtact: " + text).withStyle(ChatFormatting.GRAY), true);*/
 			}
 		});
 	}

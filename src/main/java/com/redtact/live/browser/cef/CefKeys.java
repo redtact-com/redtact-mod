@@ -54,7 +54,7 @@ final class CefKeys {
 			// keyChar は MCEF Modern と同じ (Linux の jcef はこれで X のキーを決める)。Linux の修飾キーだけ X の keysym にする (#88)
 			char keyChar = LinuxKeys.LINUX ? LinuxKeys.keyChar(keyCode) : (char) keyCode;
 			sendKeyEvent.invoke(cef, new ScancodeKeyEvent(cef.getUIComponent(), id, System.currentTimeMillis(), modifiers, keyCode, keyChar,
-					WindowsScancodes.of(event.key())));
+					windowsScancode(event)));
 			return true;
 		} catch (ReflectiveOperationException | RuntimeException e) {
 			failed = true;
@@ -96,6 +96,15 @@ final class CefKeys {
 		}
 
 		return null;
+	}
+
+	// Windows の jcef に渡すスキャンコード。26.3 は SDL のスキャンコード (event.key()) から表で引く。
+	// 26.2 まで (GLFW) は KeyEvent に OS のスキャンコードがそのまま入る (Windows では拡張キーの印 0x100 付き) ので、下の 8 ビット (#112)
+	private static long windowsScancode(KeyEvent event) {
+		//? if >=26.3 {
+		return WindowsScancodes.of(event.key());
+		//?} else
+		/*return event.scancode() & 0xFF;*/
 	}
 
 	/**

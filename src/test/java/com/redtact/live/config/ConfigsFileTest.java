@@ -1,5 +1,6 @@
 package com.redtact.live.config;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -77,7 +78,7 @@ class ConfigsFileTest {
 	void writesTheSameShapeAndReadsItBack() throws IOException {
 		Configs.Generic.SERVER_URL.setValueFromString("http://example.invalid:1234");
 		Configs.Generic.HUD_ALIGNMENT.setOptionListValue(HudCorner.BOTTOM_LEFT);
-		Configs.Hotkeys.OPEN_MENU.getKeybind().setKeys(List.of(21, 16));
+		Configs.Hotkeys.OPEN_MENU.getKeybind().setKeys(List.of(InputConstants.KEY_R, InputConstants.KEY_M));
 		Path f = dir.resolve("sub/redtact-live.json");
 		Configs.writeTo(f);
 		JsonObject root = JsonParser.parseString(Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
@@ -92,7 +93,7 @@ class ConfigsFileTest {
 		Configs.readFrom(f);
 		assertEquals("http://example.invalid:1234", Configs.Generic.SERVER_URL.getStringValue());
 		assertEquals(HudCorner.BOTTOM_LEFT, Configs.Generic.HUD_ALIGNMENT.getOptionListValue());
-		assertEquals(List.of(21, 16), Configs.Hotkeys.OPEN_MENU.getKeybind().getKeys());
+		assertEquals(List.of(InputConstants.KEY_R, InputConstants.KEY_M), Configs.Hotkeys.OPEN_MENU.getKeybind().getKeys());
 	}
 
 	/** 前の版の既定 (手元の中継サーバ) のまま保存された serverUrl は、今の既定 (本番) に読み替える (#51)。 */

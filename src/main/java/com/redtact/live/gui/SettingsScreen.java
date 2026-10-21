@@ -180,7 +180,7 @@ public final class SettingsScreen extends MenuScreen {
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		if (capturing != null) {
-			press(KeyNames.mouseCode(event.button()));
+			press(KeyNames.mouseCode(KeyNames.fromGameButton(event.button())));
 			return true;
 		}
 
@@ -190,7 +190,7 @@ public final class SettingsScreen extends MenuScreen {
 	@Override
 	public boolean mouseReleased(MouseButtonEvent event) {
 		if (capturing != null) {
-			release(KeyNames.mouseCode(event.button()));
+			release(KeyNames.mouseCode(KeyNames.fromGameButton(event.button())));
 			return true;
 		}
 

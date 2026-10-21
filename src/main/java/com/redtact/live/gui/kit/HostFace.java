@@ -8,7 +8,10 @@ import org.jspecify.annotations.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+//? if >=26.1 {
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
+//?} else
+/*import net.minecraft.client.gui.components.PlayerFaceRenderer;*/
 import net.minecraft.world.item.component.ResolvableProfile;
 
 /**
@@ -29,7 +32,13 @@ public final class HostFace {
 
 		if (id != null) {
 			g.fill(x - 1, y - 1, x + size + 1, y + size + 1, Style.OUTLINE);
-			PlayerFaceExtractor.extractRenderState(g, PROFILES.computeIfAbsent(id, ResolvableProfile::createUnresolved), x, y, size);
+			// スキンの覚えから顔の絵を引いて渡す (26.2 からはプロフィールを渡すだけでよいが、26.1 までと同じ書き方にする。#112)
+			ResolvableProfile profile = PROFILES.computeIfAbsent(id, ResolvableProfile::createUnresolved);
+			var skin = Minecraft.getInstance().playerSkinRenderCache().getOrDefault(profile).playerSkin();
+			//? if >=26.1 {
+			PlayerFaceExtractor.extractRenderState(g, skin, x, y, size);
+			//?} else
+			/*PlayerFaceRenderer.draw(g, skin, x, y, size);*/
 			return;
 		}
 

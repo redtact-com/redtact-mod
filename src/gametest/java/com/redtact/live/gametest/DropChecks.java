@@ -19,7 +19,6 @@ import com.redtact.live.gui.LibraryScreen;
 import com.redtact.live.gui.MenuSection;
 import com.redtact.live.gui.cards.PickCard;
 import com.redtact.live.gui.kit.RButton;
-import org.lwjgl.sdl.SDLKeyboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,7 +144,7 @@ final class DropChecks {
 		// (パス欄が外れるとバニラが SDL の文字入力を止める。#61)
 		clickPage(context, 0.5, 0.8);
 		context.waitTicks(2);
-		check(context.computeOnClient(mc -> SDLKeyboard.SDL_TextInputActive(mc.getWindow().handle())), "パス欄のあとでページを押しても SDL の文字入力が止まったまま");
+		check(context.computeOnClient(mc -> GameTestText.textInputActive(mc)), "パス欄のあとでページを押しても SDL の文字入力が止まったまま");
 
 		// ---- 帯の「保管庫」(本物のクリック) で閉じる → ページが全幅に戻る (同じページのまま)
 		clickWidget(context, mc -> browser(mc).paneToggle());

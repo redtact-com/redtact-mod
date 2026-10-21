@@ -2,7 +2,7 @@
 	"required": false,
 	"package": "com.redtact.live.browser.cef.mixin",
 	"plugin": "com.redtact.live.browser.cef.mixin.McefMixinPlugin",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "JAVA_${java_version}",
 	"client": [
 		"McefPaintMixin"
 	],

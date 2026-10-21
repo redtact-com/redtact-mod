@@ -1,13 +1,20 @@
 package com.redtact.live.selection;
 
+import com.redtact.live.compat.WorldGizmos;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.gizmos.GizmoStyle;
-import net.minecraft.gizmos.Gizmos;
 import net.minecraft.world.phys.AABB;
 
+//? if >=26.2 {
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionContext;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionEvents;
+//?} elif >=26.1 {
+/*import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+*///?} else {
+/*import net.fabricmc.fabric.api.client.rendering.v1.world.WorldExtractionContext;
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+*///?}
 
 /**
  * 選択範囲の枠線。抽出フェーズ (LevelExtractionEvents.END_EXTRACTION) でバニラの Gizmos に積む。
@@ -25,11 +32,23 @@ public final class SelectionRenderer {
 	}
 
 	public void register() {
+		// 同じ抽出の終わりのイベントが、26.1 の Fabric API は LevelRenderEvents、1.21.x は WorldRenderEvents にある (#112)
+		//? if >=26.2 {
 		LevelExtractionEvents.END_EXTRACTION.register(this::extract);
+		//?} elif >=26.1 {
+		/*LevelRenderEvents.END_EXTRACTION.register(this::extract);
+		*///?} else {
+		/*WorldRenderEvents.END_EXTRACTION.register(this::extract);
+		*///?}
 	}
 
+	//? if >=26.1 {
 	private void extract(LevelExtractionContext context) {
 		ClientLevel level = context.level();
+	//?} else {
+	/*private void extract(WorldExtractionContext context) {
+		ClientLevel level = context.world();
+	*///?}
 
 		if (level == null || selection.isEmpty()) {
 			return;
@@ -46,7 +65,7 @@ public final class SelectionRenderer {
 
 			if (box != null) {
 				AABB aabb = new AABB(box.minX(), box.minY(), box.minZ(), box.maxX() + 1, box.maxY() + 1, box.maxZ() + 1);
-				Gizmos.cuboid(aabb.inflate(0.01), GizmoStyle.stroke(BOX_COLOR, 2.5F)).setAlwaysOnTop();
+				WorldGizmos.box(aabb.inflate(0.01), BOX_COLOR, 2.5F);
 			}
 
 			marker(selection.pos1(), POS1_COLOR);
@@ -58,7 +77,7 @@ public final class SelectionRenderer {
 
 	private static void marker(BlockPos pos, int color) {
 		if (pos != null) {
-			Gizmos.cuboid(pos, 0.02F, GizmoStyle.stroke(color, 2.0F)).setAlwaysOnTop();
+			WorldGizmos.box(pos, 0.02F, color, 2.0F);
 		}
 	}
 }

@@ -1,6 +1,5 @@
 package com.redtact.live.preview.view;
 
-import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
@@ -10,20 +9,21 @@ import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.renderpearl.api.GpuFormat;
 import com.mojang.renderpearl.api.buffers.GpuBuffer;
 import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
 import com.mojang.renderpearl.api.commands.RenderPass;
 import com.mojang.renderpearl.api.textures.AddressMode;
 import com.mojang.renderpearl.api.textures.FilterMode;
+//? if >=1.21.11 {
 import com.mojang.renderpearl.api.textures.GpuSampler;
+//?}
 import com.mojang.renderpearl.api.textures.GpuTextureView;
+import com.redtact.live.compat.GpuCompat;
 import com.redtact.live.preview.mesh.GpuMesh;
 import com.redtact.live.preview.mesh.SpecialBlocks;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Vector3f;
-import org.joml.Vector4f;
 import org.jspecify.annotations.Nullable;
 
 import net.minecraft.client.Minecraft;
@@ -38,6 +38,11 @@ import net.minecraft.client.renderer.fog.FogRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+//? if <26.3 {
+/*import java.util.List;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
+*///?}
 
 /**
  * 全画面のプレビュー (#102) の描くもの: GPU に置いた回路の形 ({@link GpuMesh}) とカメラ ({@link ViewCamera})。
@@ -53,12 +58,25 @@ public final class PreviewScene implements AutoCloseable {
 	private static final float RESORT_DISTANCE = 0.5F;
 
 	private final ViewCamera camera = new ViewCamera();
+	//? if <26.1 {
+	/*private final EyeCamera eyeCamera = new EyeCamera();
+
+	// 位置だけを持つカメラ (1.21.x の Globals はカメラの位置を Camera から読む。#112)
+	private static final class EyeCamera extends net.minecraft.client.Camera {
+		void at(Vec3 position) {
+			setPosition(position);
+		}
+	}
+	*///?}
 	private @Nullable GpuMesh mesh;
 	private long version;
 	private @Nullable ProjectionMatrixBuffer projectionBuffer;
 	private @Nullable GlobalSettingsUniform globals;
 	private @Nullable FogRenderer fog;
+	// 絵の拡大縮小のしかた (1.21.10 までは絵の側に付いていて、作らない)
+	//? if >=1.21.11 {
 	private @Nullable GpuSampler sampler;
+	//?}
 	private @Nullable SpecialBlocks specials;
 	private final Vector3f sortedFrom = new Vector3f(Float.NaN, Float.NaN, Float.NaN);
 	// beginFrame から endFrame までの間 (戻すもの)
@@ -130,8 +148,10 @@ public final class PreviewScene implements AutoCloseable {
 			projectionBuffer = new ProjectionMatrixBuffer("redtact-live preview");
 			globals = new GlobalSettingsUniform();
 			fog = new FogRenderer();
+			//? if >=1.21.11 {
 			sampler = RenderSystem.getDevice()
 					.createSampler(AddressMode.CLAMP_TO_EDGE, AddressMode.CLAMP_TO_EDGE, FilterMode.LINEAR, FilterMode.LINEAR, 1, OptionalDouble.empty());
+			//?}
 		}
 
 		Vector3f eye = camera.eye();
@@ -148,14 +168,23 @@ public final class PreviewScene implements AutoCloseable {
 			sortedFrom.set(eye);
 		}
 
-		boolean zZeroToOne = RenderSystem.getDevice().getDeviceInfo().isZZeroToOne();
 		RenderSystem.backupProjectionMatrix();
-		RenderSystem.setProjectionMatrix(projectionBuffer.getBuffer(camera.projection(width, height, zZeroToOne)),
+		RenderSystem.setProjectionMatrix(projectionBuffer.getBuffer(camera.projection(width, height, GpuCompat.zZeroToOne(), GpuCompat.REVERSED_Z)),
 				camera.mode() == ViewCamera.Mode.TOP ? ProjectionType.ORTHOGRAPHIC : ProjectionType.PERSPECTIVE);
 		previousGlobals = RenderSystem.getGlobalSettingsUniform();
 		previousFog = RenderSystem.getShaderFog();
 		long gameTime = mc.level == null ? 0 : mc.level.getGameTime();
+		//? if >=26.3 {
 		globals.update(width, height, 0.0, gameTime, 0.0F, 0, new Vec3(eye.x, eye.y, eye.z), false);
+		//?} elif >=26.1 {
+		/*globals.update(width, height, 0.0, gameTime, DeltaTracker.ZERO, 0, new Vec3(eye.x, eye.y, eye.z), false);
+		*///?} elif >=1.21.11 {
+		/*eyeCamera.at(new Vec3(eye.x, eye.y, eye.z));
+		globals.update(width, height, 0.0, gameTime, DeltaTracker.ZERO, 0, eyeCamera, false);
+		*///?} else {
+		/*// 1.21.10: Globals にカメラの位置は無い (形の位置はカメラからの差で GpuMesh#prepare が DynamicTransforms に入れる)
+		globals.update(width, height, 0.0, gameTime, DeltaTracker.ZERO, 0);
+		*///?}
 		RenderSystem.setShaderFog(fog.getBuffer(FogRenderer.FogMode.NONE));
 		Matrix4fStack modelView = RenderSystem.getModelViewStack();
 		modelView.pushMatrix();
@@ -175,13 +204,60 @@ public final class PreviewScene implements AutoCloseable {
 
 		Minecraft mc = Minecraft.getInstance();
 		GpuTextureView atlas = mc.getTextureManager().getTexture(TextureAtlas.LOCATION_BLOCKS).getTextureView();
-		ChunkSectionsToRender toRender = m.prepare(RenderSystem.getModelViewMatrixCopy(), atlas);
+		ChunkSectionsToRender toRender = m.prepare(RenderSystem.getModelViewMatrixCopy(), atlas, frameEye);
+
+		//? if <26.3 {
+		/*// 26.2 まで: ChunkSectionsToRender#renderGroup はゲームの画面に描くので、同じ中身を color・depth へ描くパスで行う (#112)
+		RenderSystem.AutoStorageIndexBuffer autoIndices = RenderSystem.getSequentialBuffer(GpuCompat.QUADS);
+		GpuBuffer defaultIndexBuffer = toRender.maxIndicesRequired() == 0 ? null : autoIndices.getBuffer(toRender.maxIndicesRequired());
+		var defaultIndexType = toRender.maxIndicesRequired() == 0 ? null : autoIndices.type(); // 型の場所が版で違う (26.1 までは VertexFormat の中)
+		*///?}
 
 		for (ChunkSectionLayerGroup group : ChunkSectionLayerGroup.values()) {
-			try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder()
-					.createRenderPass(() -> "redtact-live preview " + group.label(), color, Optional.empty(), depth, OptionalDouble.empty())) {
+			try (RenderPass pass = GpuCompat.openPass(() -> "redtact-live preview " + group.label(), color, depth)) {
 				RenderSystem.bindDefaultUniforms(pass);
+				//? if >=26.3 {
 				toRender.renderGroup(group, pass, sampler, atlas, false);
+				//?} elif >=26.1 {
+				/*pass.bindTexture("Sampler0", atlas, sampler);
+				pass.bindTexture("Sampler2", mc.gameRenderer.lightmap(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+
+				for (ChunkSectionLayer layer : group.layers()) {
+					pass.setPipeline(layer.pipeline());
+
+					for (List<RenderPass.Draw<GpuBufferSlice[]>> draws : toRender.drawGroupsPerLayer().get(layer).values()) {
+						if (!draws.isEmpty()) {
+							pass.drawMultipleIndexed(draws, defaultIndexBuffer, defaultIndexType, List.of("ChunkSection"), toRender.chunkSectionInfos());
+						}
+					}
+				}
+				*///?} elif >=1.21.11 {
+				/*// 1.21.11: 層ごとの描く指示は番号で束ねていない (ゲームの ChunkSectionsToRender#renderGroup と同じ)
+				pass.bindTexture("Sampler0", atlas, sampler);
+				pass.bindTexture("Sampler2", mc.gameRenderer.lightmap(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+
+				for (ChunkSectionLayer layer : group.layers()) {
+					List<RenderPass.Draw<GpuBufferSlice[]>> draws = toRender.drawsPerLayer().get(layer);
+
+					if (!draws.isEmpty()) {
+						pass.setPipeline(layer.pipeline());
+						pass.drawMultipleIndexed(draws, defaultIndexBuffer, defaultIndexType, List.of("ChunkSection"), toRender.chunkSectionInfos());
+					}
+				}
+				*///?} else {
+				/*// 1.21.10: 絵の拡大縮小のしかたは絵の側に付いている (層ごとの絵)。区画の情報は DynamicTransforms (ゲームと同じ)
+				pass.bindSampler("Sampler2", mc.gameRenderer.lightmap());
+
+				for (ChunkSectionLayer layer : group.layers()) {
+					List<RenderPass.Draw<GpuBufferSlice[]>> draws = toRender.drawsPerLayer().get(layer);
+
+					if (!draws.isEmpty()) {
+						pass.setPipeline(layer.pipeline());
+						pass.bindSampler("Sampler0", layer.textureView());
+						pass.drawMultipleIndexed(draws, defaultIndexBuffer, defaultIndexType, List.of("DynamicTransforms"), toRender.dynamicTransforms());
+					}
+				}
+				*///?}
 			}
 		}
 	}
@@ -254,40 +330,69 @@ public final class PreviewScene implements AutoCloseable {
 			return;
 		}
 
-		TextureTarget target = new TextureTarget("redtact-live preview capture", width, height, GpuFormat.RGBA8_UNORM, GpuFormat.D32_FLOAT);
-		RenderSystem.getDevice().createCommandEncoder()
-				.clearColorAndDepthTextures(target.getColorTexture(), new Vector4f(0, 0, 0, 0), target.getDepthTexture(), 0.0);
+		TextureTarget target = GpuCompat.captureTarget("redtact-live preview capture", width, height);
+		GpuCompat.clearTransparent(target);
 
 		if (beginFrame(width, height)) {
 			try {
 				drawMesh(target.getColorTextureView(), target.getDepthTextureView());
+
+				//? if >=26.3 {
 				SubmitNodeStorage storage = new SubmitNodeStorage();
 				submitSpecials(storage);
 
 				try (FeatureRenderDispatcher.PreparedFrame frame = Minecraft.getInstance().gameRenderer.featureRenderDispatcher().prepareFrame(storage);
-						RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "redtact-live preview capture",
-								target.getColorTextureView(), Optional.empty(), target.getDepthTextureView(), OptionalDouble.empty())) {
+						RenderPass pass = GpuCompat.openPass(() -> "redtact-live preview capture", target.getColorTextureView(), target.getDepthTextureView())) {
 					RenderSystem.bindDefaultUniforms(pass);
 					FeatureRenderDispatcher.renderAllFeatures(pass, frame);
 				}
+				//?} elif >=26.2 {
+				/*// 26.2: チェストなどは描き先の上書きに描く (ゲームの LevelRenderer と同じ。#112)
+				SubmitNodeStorage storage = new SubmitNodeStorage();
+				submitSpecials(storage);
+				RenderSystem.outputColorTextureOverride = target.getColorTextureView();
+				RenderSystem.outputDepthTextureOverride = target.getDepthTextureView();
+
+				try {
+					Minecraft.getInstance().gameRenderer.featureRenderDispatcher().renderAllFeatures(storage);
+				} finally {
+					RenderSystem.outputColorTextureOverride = null;
+					RenderSystem.outputDepthTextureOverride = null;
+				}
+				*///?} else {
+				/*// 26.1 まで: 描くものはゲームの置き場に積んで描かせる (描いたら空になる)。描き先は上書きで
+				FeatureRenderDispatcher features = Minecraft.getInstance().gameRenderer.getFeatureRenderDispatcher();
+				submitSpecials(features.getSubmitNodeStorage());
+				RenderSystem.outputColorTextureOverride = target.getColorTextureView();
+				RenderSystem.outputDepthTextureOverride = target.getDepthTextureView();
+
+				try {
+					features.renderAllFeatures();
+				} finally {
+					RenderSystem.outputColorTextureOverride = null;
+					RenderSystem.outputDepthTextureOverride = null;
+				}
+				*///?}
 			} finally {
 				endFrame();
 			}
 		}
 
-		int bytes = target.getColorTexture().getFormat().blockSize();
+		int bytes = GpuCompat.colorBytes(target);
 		GpuBuffer buffer = RenderSystem.getDevice()
-				.createBuffer(() -> "redtact-live preview capture", GpuBuffer.USAGE_COPY_DST | GpuBuffer.USAGE_MAP_READ, (long) width * height * bytes);
-		RenderSystem.getDevice().createCommandEncoder().copyTextureToBuffer(target.getColorTexture(), buffer, 0L, () -> {
+				.createBuffer(() -> "redtact-live preview capture", GpuBuffer.USAGE_COPY_DST | GpuBuffer.USAGE_MAP_READ, width * height * bytes); // 1.21.10 までは int
+		RenderSystem.getDevice().createCommandEncoder().copyTextureToBuffer(target.getColorTexture(), buffer, 0, () -> {
 			NativeImage image = new NativeImage(width, height, false);
 
-			try (var view = buffer.map(true, false)) {
-				for (int y = 0; y < height; y++) {
-					for (int x = 0; x < width; x++) {
-						// 色の並び RGBA の 4 バイトを int で読むと ABGR (透明度はそのまま。ゲームのスクリーンショットは不透明に塗る)
-						image.setPixelABGR(x, height - y - 1, straightAlpha(view.data().getInt((x + y * width) * bytes)));
+			try {
+				GpuCompat.read(buffer, data -> {
+					for (int y = 0; y < height; y++) {
+						for (int x = 0; x < width; x++) {
+							// 色の並び RGBA の 4 バイトを int で読むと ABGR (透明度はそのまま。ゲームのスクリーンショットは不透明に塗る)
+							image.setPixelABGR(x, height - y - 1, straightAlpha(data.getInt((x + y * width) * bytes)));
+						}
 					}
-				}
+				});
 			} finally {
 				buffer.close();
 				target.destroyBuffers();
@@ -334,9 +439,11 @@ public final class PreviewScene implements AutoCloseable {
 			fog = null;
 		}
 
+		//? if >=1.21.11 {
 		if (sampler != null) {
 			sampler.close();
 			sampler = null;
 		}
+		//?}
 	}
 }

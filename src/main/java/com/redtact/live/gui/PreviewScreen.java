@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.Window;
+import com.redtact.live.compat.GameInput;
 import com.redtact.live.gui.kit.Draw;
 import com.redtact.live.gui.kit.Icon;
 import com.redtact.live.gui.kit.RButton;
@@ -381,7 +382,7 @@ public final class PreviewScreen extends Screen {
 	}
 
 	private static boolean down(int scancode) {
-		return InputConstants.isKeyDown(scancode);
+		return GameInput.isKeyDown(scancode);
 	}
 
 	@Override
@@ -648,8 +649,8 @@ public final class PreviewScreen extends Screen {
 
 		grabX = minecraft.mouseHandler.xpos();
 		grabY = minecraft.mouseHandler.ypos();
-		PointerCapture.begin();
-		InputConstants.grabMouse(minecraft.getWindow(), grabX, grabY);
+		PointerCapture.begin(grabX, grabY);
+		GameInput.grabMouse(minecraft.getWindow(), grabX, grabY);
 		flyGrabbed = true;
 	}
 
@@ -660,7 +661,7 @@ public final class PreviewScreen extends Screen {
 
 		flyGrabbed = false;
 		PointerCapture.end();
-		InputConstants.releaseMouse(minecraft.getWindow(), grabX, grabY);
+		GameInput.releaseMouse(minecraft.getWindow(), grabX, grabY);
 	}
 
 	/** フライでマウスを閉じ込めているか (テスト用)。 */

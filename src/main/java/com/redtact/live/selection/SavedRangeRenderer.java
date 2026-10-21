@@ -1,5 +1,6 @@
 package com.redtact.live.selection;
 
+import com.redtact.live.compat.WorldGizmos;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -14,15 +15,20 @@ import com.redtact.live.tool.SelectionTool;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.gizmos.GizmoStyle;
-import net.minecraft.gizmos.Gizmos;
-import net.minecraft.gizmos.TextGizmo;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+//? if >=26.2 {
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionContext;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionEvents;
+//?} elif >=26.1 {
+/*import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+*///?} else {
+/*import net.fabricmc.fabric.api.client.rendering.v1.world.WorldExtractionContext;
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+*///?}
 
 /**
  * 保存済みの範囲の枠と名前 (#39)。羽根 (範囲指定の道具) を持っているあいだと、メニューの「セッション」「範囲」を開いているあいだだけ、
@@ -46,7 +52,14 @@ public final class SavedRangeRenderer {
 	}
 
 	public void register() {
+		// 同じ抽出の終わりのイベントが、26.1 の Fabric API は LevelRenderEvents、1.21.x は WorldRenderEvents にある (#112)
+		//? if >=26.2 {
 		LevelExtractionEvents.END_EXTRACTION.register(this::extract);
+		//?} elif >=26.1 {
+		/*LevelRenderEvents.END_EXTRACTION.register(this::extract);
+		*///?} else {
+		/*WorldRenderEvents.END_EXTRACTION.register(this::extract);
+		*///?}
 	}
 
 	/** いま枠を描くか (道具を持っている・メニューの「セッション」「範囲」を開いている)。 */
@@ -62,8 +75,13 @@ public final class SavedRangeRenderer {
 		return mc.gui.screen() == null && SelectionTool.enabled() && SelectionTool.isHolding(mc.player);
 	}
 
+	//? if >=26.1 {
 	private void extract(LevelExtractionContext context) {
 		ClientLevel level = context.level();
+	//?} else {
+	/*private void extract(WorldExtractionContext context) {
+		ClientLevel level = context.world();
+	*///?}
 		Minecraft mc = Minecraft.getInstance();
 
 		if (level == null || !shown(mc)) {
@@ -103,7 +121,7 @@ public final class SavedRangeRenderer {
 				// 選択と同じ箱は選択の枠 (赤) が描くので、名前だけ
 				if (!box.equals(sel) || isHover) {
 					AABB aabb = new AABB(box.minX(), box.minY(), box.minZ(), box.maxX() + 1, box.maxY() + 1, box.maxZ() + 1);
-					Gizmos.cuboid(aabb.inflate(isHover ? 0.03 : 0.02), GizmoStyle.stroke(color, isHover ? 3.0F : isPicked ? 2.5F : 1.5F)).setAlwaysOnTop();
+					WorldGizmos.box(aabb.inflate(isHover ? 0.03 : 0.02), color, isHover ? 3.0F : isPicked ? 2.5F : 1.5F);
 				}
 
 				if (isHover || isPicked || d <= LABEL_DISTANCE) {
@@ -112,8 +130,8 @@ public final class SavedRangeRenderer {
 							: isHover ? Tr.f("{0}  {1} で選ぶ", r.name, KeyDisplay.combo(Configs.Hotkeys.TOOL_PICK.getKeybind().getKeys())) : r.name;
 					// 遠くても読めるよう、距離に合わせて大きくする (近くは既定の大きさ)
 					double far = Math.sqrt(top.distanceToSqr(eye));
-					float scale = (float) Math.clamp(TextGizmo.Style.DEFAULT_SCALE * far / 6.0, TextGizmo.Style.DEFAULT_SCALE, 2.5);
-					Gizmos.billboardText(label, top, TextGizmo.Style.forColorAndCentered(color).withScale(scale)).setAlwaysOnTop();
+					float scale = (float) Math.clamp(WorldGizmos.DEFAULT_TEXT_SCALE * far / 6.0, WorldGizmos.DEFAULT_TEXT_SCALE, 2.5);
+					WorldGizmos.text(label, top, color, scale);
 				}
 			}
 		} catch (IllegalStateException e) {

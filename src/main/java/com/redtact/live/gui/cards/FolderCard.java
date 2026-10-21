@@ -1,5 +1,6 @@
 package com.redtact.live.gui.cards;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import java.nio.file.Path;
 import java.util.function.Consumer;
 
@@ -58,7 +59,7 @@ public final class FolderCard extends MenuCard {
 			return true;
 		}
 
-		if (event.button() != 1) {
+		if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
 			return false;
 		}
 

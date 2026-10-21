@@ -187,19 +187,19 @@ public final class ViewCamera {
 	}
 
 	/**
-	 * 投影の行列。ゲームと同じく深度は逆向き (近いほど大きい。手前と奥を入れ替えて作る)。width・height は画素、
-	 * zZeroToOne は GPU の深度の範囲 (0〜1 か -1〜1)。
+	 * 投影の行列。width・height は画素、zZeroToOne は GPU の深度の範囲 (0〜1 か -1〜1)。reversed ならゲーム (26.2 から) と同じく
+	 * 深度は逆向き (近いほど大きい。手前と奥を入れ替えて作る)。
 	 */
-	public Matrix4f projection(float width, float height, boolean zZeroToOne) {
+	public Matrix4f projection(float width, float height, boolean zZeroToOne, boolean reversed) {
 		float aspect = width / Math.max(1.0F, height);
 
 		if (mode == Mode.TOP) {
 			float h = topSpan;
 			float w = h * aspect;
-			return new Matrix4f().setOrtho(-w / 2, w / 2, -h / 2, h / 2, FAR, -FAR, zZeroToOne);
+			return new Matrix4f().setOrtho(-w / 2, w / 2, -h / 2, h / 2, reversed ? FAR : -FAR, reversed ? -FAR : FAR, zZeroToOne);
 		}
 
-		return new Matrix4f().setPerspective((float) Math.toRadians(FOV), aspect, FAR, NEAR, zZeroToOne);
+		return new Matrix4f().setPerspective((float) Math.toRadians(FOV), aspect, reversed ? FAR : NEAR, reversed ? NEAR : FAR, zZeroToOne);
 	}
 
 	// ---- テストと表示のため

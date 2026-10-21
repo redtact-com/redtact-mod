@@ -188,7 +188,18 @@ public final class RegionCapture {
 	public static BlockStateEntry toEntry(BlockState state) {
 		String name = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
 		Map<String, String> props = new TreeMap<>();
+		//? if >=26.1 {
 		state.getValues().forEach(v -> props.put(v.property().getName(), v.valueName()));
+		//?} else
+		/*state.getValues().forEach((p, v) -> props.put(p.getName(), valueName(p, v)));*/
 		return BlockStateEntry.of(name, props);
 	}
+
+	//? if <26.1 {
+	/*// 1.21.x の状態の値は Property と値の組 (値の名前は Property から引く)
+	@SuppressWarnings("unchecked")
+	private static <T extends Comparable<T>> String valueName(net.minecraft.world.level.block.state.properties.Property<T> property, Comparable<?> value) {
+		return property.getName((T) value);
+	}
+	*///?}
 }

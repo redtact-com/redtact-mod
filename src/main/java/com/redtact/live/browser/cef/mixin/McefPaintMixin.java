@@ -33,6 +33,9 @@ public abstract class McefPaintMixin {
 		BrowserStats.paintEnd();
 	}
 
+	// MCEF Modern の onPaintInternal の引数は、マイクラの版ごとの MCEF の作りで違う (26.3 用は画素・幅・高さだけ、26.2 用は
+	// ポップアップか・更新された範囲も先に来る。#112)
+	//? if >=26.3 {
 	@Inject(method = "onPaintInternal", at = @At("HEAD"), remap = false)
 	private void redtactLive$uploadStart(ByteBuffer buffer, int width, int height, CallbackInfo ci) {
 		BrowserStats.uploadStart();
@@ -42,4 +45,15 @@ public abstract class McefPaintMixin {
 	private void redtactLive$uploadEnd(ByteBuffer buffer, int width, int height, CallbackInfo ci) {
 		BrowserStats.uploadEnd();
 	}
+	//?} else {
+	/*@Inject(method = "onPaintInternal", at = @At("HEAD"), remap = false)
+	private void redtactLive$uploadStart(boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height, CallbackInfo ci) {
+		BrowserStats.uploadStart();
+	}
+
+	@Inject(method = "onPaintInternal", at = @At("RETURN"), remap = false)
+	private void redtactLive$uploadEnd(boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height, CallbackInfo ci) {
+		BrowserStats.uploadEnd();
+	}
+	*///?}
 }

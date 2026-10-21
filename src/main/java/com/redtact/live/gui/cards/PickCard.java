@@ -1,5 +1,6 @@
 package com.redtact.live.gui.cards;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -63,7 +64,7 @@ public final class PickCard extends MenuCard {
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		if (event.button() != 1) {
+		if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
 			return false;
 		}
 

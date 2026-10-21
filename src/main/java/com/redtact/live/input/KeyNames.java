@@ -8,7 +8,8 @@ import java.util.OptionalInt;
  * キーの名前とコード。設定ファイルの名前は malilib の頃と同じ (ScanCodes の SCAN_ を外した名前)。MC に依存しない。
  *
  * <ul>
- * <li>キーボード: SDL のスキャンコード (キーの物理的な位置。26.x の InputConstants.KEY_* と同じ値)</li>
+ * <li>キーボード: 26.3 は SDL のスキャンコード (キーの物理的な位置。InputConstants.KEY_* と同じ値)。26.2 までは GLFW のキー (#112)。
+ * 設定ファイルは名前なので、版をまたいでも同じキーになる</li>
  * <li>マウス: {@link #MOUSE_OFFSET} + ボタンの番号 (1 = 左・2 = 中・3 = 右・4 = 戻る・5 = 進む)。左 = -99 で malilib と同じ</li>
  * </ul>
  *
@@ -24,6 +25,7 @@ public final class KeyNames {
 	private static final Map<Integer, String> BY_CODE = new HashMap<>();
 
 	static {
+		//? if >=26.3 {
 		Object[] table = {
 			"A", 4, "B", 5, "C", 6, "D", 7, "E", 8, "F", 9,
 			"G", 10, "H", 11, "I", 12, "J", 13, "K", 14, "L", 15,
@@ -48,6 +50,33 @@ public final class KeyNames {
 			"MOUSE_LEFT", MOUSE_LEFT, "MOUSE_MIDDLE", MOUSE_MIDDLE, "MOUSE_RIGHT", MOUSE_RIGHT,
 			"MOUSE_BACK", MOUSE_OFFSET + 4, "MOUSE_FORWARD", MOUSE_OFFSET + 5,
 		};
+		//?} else {
+		/*// 26.2 まで (GLFW) のキーの番号 (InputConstants.KEY_* と同じ値。#112)。名前は 26.3 と同じ
+		Object[] table = {
+			"A", 65, "B", 66, "C", 67, "D", 68, "E", 69, "F", 70,
+			"G", 71, "H", 72, "I", 73, "J", 74, "K", 75, "L", 76,
+			"M", 77, "N", 78, "O", 79, "P", 80, "Q", 81, "R", 82,
+			"S", 83, "T", 84, "U", 85, "V", 86, "W", 87, "X", 88,
+			"Y", 89, "Z", 90, "1", 49, "2", 50, "3", 51, "4", 52,
+			"5", 53, "6", 54, "7", 55, "8", 56, "9", 57, "0", 48,
+			"RETURN", 257, "ESCAPE", 256, "BACKSPACE", 259, "TAB", 258, "SPACE", 32, "MINUS", 45,
+			"EQUALS", 61, "LEFT_BRACKET", 91, "RIGHT_BRACKET", 93, "BACKSLASH", 92, "NON_US_HASH", 161, "SEMICOLON", 59,
+			"APOSTROPHE", 39, "GRAVE", 96, "COMMA", 44, "PERIOD", 46, "SLASH", 47, "CAPS_LOCK", 280,
+			"F1", 290, "F2", 291, "F3", 292, "F4", 293, "F5", 294, "F6", 295,
+			"F7", 296, "F8", 297, "F9", 298, "F10", 299, "F11", 300, "F12", 301,
+			"PRINT_SCREEN", 283, "SCROLL_LOCK", 281, "PAUSE", 284, "INSERT", 260, "HOME", 268, "PAGE_UP", 266,
+			"DELETE", 261, "END", 269, "PAGE_DOWN", 267, "RIGHT", 262, "LEFT", 263, "DOWN", 264,
+			"UP", 265, "NUM_LOCK", 282, "KP_DIVIDE", 331, "KP_MULTIPLY", 332, "KP_MINUS", 333, "KP_PLUS", 334,
+			"KP_ENTER", 335, "KP_1", 321, "KP_2", 322, "KP_3", 323, "KP_4", 324, "KP_5", 325,
+			"KP_6", 326, "KP_7", 327, "KP_8", 328, "KP_9", 329, "KP_0", 320, "KP_PERIOD", 330,
+			"NON_US_BACKSLASH", 162, "KP_EQUALS", 336, "F13", 302, "F14", 303, "F15", 304, "F16", 305,
+			"F17", 306, "F18", 307, "F19", 308, "F20", 309, "F21", 310, "F22", 311,
+			"F23", 312, "F24", 313, "LEFT_CONTROL", 341, "LEFT_SHIFT", 340, "LEFT_ALT", 342,
+			"LEFT_GUI", 343, "RIGHT_CONTROL", 345, "RIGHT_SHIFT", 344, "RIGHT_ALT", 346, "RIGHT_GUI", 347,
+			"MOUSE_LEFT", MOUSE_LEFT, "MOUSE_MIDDLE", MOUSE_MIDDLE, "MOUSE_RIGHT", MOUSE_RIGHT,
+			"MOUSE_BACK", MOUSE_OFFSET + 4, "MOUSE_FORWARD", MOUSE_OFFSET + 5,
+		};
+		*///?}
 
 		for (int i = 0; i < table.length; i += 2) {
 			String name = (String) table[i];
@@ -98,5 +127,36 @@ public final class KeyNames {
 	/** ボタンの番号 (1 = 左) からマウスのコード。 */
 	public static int mouseCode(int button) {
 		return MOUSE_OFFSET + button;
+	}
+
+	/**
+	 * ゲームのマウスのボタンの番号 ({@code MouseButtonInfo#button}) から、この MOD のボタンの番号 (1 = 左・2 = 中・3 = 右)。
+	 * 26.3 は SDL で同じ番号、26.2 までは GLFW で 0 = 左・1 = 右・2 = 中 (右と中の順が違う。#112)。
+	 */
+	public static int fromGameButton(int button) {
+		//? if >=26.3 {
+		return button;
+		//?} else {
+		/*return switch (button) {
+			case 0 -> 1; // 左
+			case 1 -> 3; // 右
+			case 2 -> 2; // 中
+			default -> button + 1; // 3 = 戻る → 4・4 = 進む → 5
+		};
+		*///?}
+	}
+
+	/** この MOD のボタンの番号 (1 = 左・2 = 中・3 = 右) から、ゲームのマウスのボタンの番号 (InputConstants.Type.MOUSE など)。 */
+	public static int gameButton(int button) {
+		//? if >=26.3 {
+		return button;
+		//?} else {
+		/*return switch (button) {
+			case 1 -> 0; // 左
+			case 3 -> 1; // 右
+			case 2 -> 2; // 中
+			default -> button - 1;
+		};
+		*///?}
 	}
 }

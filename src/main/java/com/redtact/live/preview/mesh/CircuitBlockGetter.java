@@ -5,7 +5,9 @@ import org.jspecify.annotations.Nullable;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
+//? if >=26.1 {
 import net.minecraft.world.level.CardinalLighting;
+//?}
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
@@ -84,10 +86,27 @@ final class CircuitBlockGetter implements BlockAndTintGetter {
 		return -1;
 	}
 
+	//? if >=26.1 {
 	@Override
 	public CardinalLighting cardinalLighting() {
 		return CardinalLighting.DEFAULT;
 	}
+	//?} else {
+	/*// 1.21.x は面の向きごとの明るさを getShade で返す (ゲームの地上と同じ値。#112)
+	@Override
+	public float getShade(net.minecraft.core.Direction direction, boolean shade) {
+		if (!shade) {
+			return 1.0F;
+		}
+
+		return switch (direction) {
+			case DOWN -> 0.5F;
+			case UP -> 1.0F;
+			case NORTH, SOUTH -> 0.8F;
+			case WEST, EAST -> 0.6F;
+		};
+	}
+	*///?}
 
 	@Override
 	public int getBlockTint(BlockPos pos, ColorResolver resolver) {

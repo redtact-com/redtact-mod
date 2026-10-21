@@ -26,14 +26,18 @@ import com.redtact.live.library.LibraryEntry;
 import com.sun.net.httpserver.HttpExchange;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.sun.net.httpserver.HttpServer;
+//? if >=26.3 {
 import org.lwjgl.sdl.SDLKeyboard;
 import org.lwjgl.sdl.SDLKeycode;
+//?}
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
+//? if >=26.1 {
 import net.minecraft.client.input.PreeditEvent;
+//?}
 import net.minecraft.core.BlockPos;
 
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -396,6 +400,7 @@ final class McefChecks {
 	private static void checkTextInput(ClientGameTestContext context) {
 		check(context.computeOnClient(mc -> textInputActive(mc)), "SDL の文字入力が有効になっていない (実機で字が入らない)");
 
+		//? if >=26.3 {
 		context.runOnClient(mc -> mc.keyboardHandler.textEditing(mc.getWindow().handle(), PreeditEvent.fromSdlTextEditing("にほん", -1, 0)));
 		check(context.computeOnClient(mc -> browser(mc) != null && browser(mc).composing()), "変換中の字を受け取っていない");
 		context.waitTicks(2);
@@ -415,12 +420,23 @@ final class McefChecks {
 
 		// Ctrl+A で全部を選び、打つと置き換わる (Fabric の擬似入力は修飾キーを付けないので、バニラの入口へ直に入れる)
 		context.runOnClient(mc -> {
-			long window = mc.getWindow().handle();
 			int key = InputConstants.KEY_A;
 			KeyEvent ctrlA = new KeyEvent(key, SDLKeyboard.SDL_GetKeyFromScancode(key, (short) 0, false), SDLKeycode.SDL_KMOD_LCTRL);
-			mc.keyboardHandler.keyPress(window, 1, ctrlA);
-			mc.keyboardHandler.keyPress(window, 0, ctrlA);
+			GameTestText.keyPress(mc, 1, ctrlA);
+			GameTestText.keyPress(mc, 0, ctrlA);
 		});
+		//?} else {
+		/*// 26.2 まで (GLFW) は変換中の字を作れないので、字の入力と Ctrl+A だけを見る (#112)
+		context.getInput().typeChars("日本");
+		context.waitFor(mc -> pageHash(mc).equals("abc日本"), LibraryClientGameTest.TIMEOUT);
+		context.getInput().pressKey(InputConstants.KEY_BACKSPACE);
+		context.waitFor(mc -> pageHash(mc).equals("abc日"), LibraryClientGameTest.TIMEOUT);
+		context.runOnClient(mc -> {
+			KeyEvent ctrlA = new KeyEvent(InputConstants.KEY_A, 0, org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL);
+			GameTestText.keyPress(mc, 1, ctrlA);
+			GameTestText.keyPress(mc, 0, ctrlA);
+		});
+		*///?}
 		context.getInput().typeChars("q");
 		context.waitFor(mc -> pageHash(mc).equals("q"), LibraryClientGameTest.TIMEOUT);
 
@@ -432,7 +448,7 @@ final class McefChecks {
 	}
 
 	private static boolean textInputActive(Minecraft mc) {
-		return SDLKeyboard.SDL_TextInputActive(mc.getWindow().handle());
+		return GameTestText.textInputActive(mc);
 	}
 
 	/** ページの URL の # のあと (入力欄の中身)。 */

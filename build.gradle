@@ -1,6 +1,10 @@
+// 版ごとのビルド (Stonecutter が versions/<版>/ に当てる。#112)。版で変わる値は versions/<版>/gradle.properties
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	// 難読化なしの版 (26.1 から) は net.fabricmc.fabric-loom、難読化ありの版 (1.21.x) は fabric-loom-remap を当てる
+	id 'dev.kikugie.loom-back-compat'
 }
+
+version = "${project.mod_version}+${project.minecraft_version}"
 
 repositories {
 	// Litematica と、それが使う malilib (任意の連携のためのコンパイル時だけ)。Modrinth Maven から取る
@@ -13,6 +17,18 @@ repositories {
 		}
 		filter {
 			includeGroup "maven.modrinth"
+		}
+	}
+	// 1.21.x のゲームテストで、Litematica・MaLiLib が同梱している conditional-mixin を入れるため (下の dependencies)
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = "Fallenbreath"
+				url = "https://maven.fallenbreath.me/releases"
+			}
+		}
+		filter {
+			includeGroup "me.fallenbreath"
 		}
 	}
 	// jcef の API (MCEF Modern が同梱しているもの)
@@ -49,67 +65,214 @@ fabricApi {
 	}
 }
 
+// 難読化ありの版 (1.21.x) か (dependencies の中の loomx は依存の拡張なので、ここで読む)
+def obfuscated = !loomx.unobfuscated
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	loomx.applyMojangMappings() // 難読化ありの版だけ Mojang の名前で remap する (難読化なしの版では何もしない)
+	// MOD の依存は mod* の構成で書く: 難読化ありの版では Mojang の名前へ remap され、難読化なしの版では loom-back-compat が
+	// ふつうの構成 (implementation など) の別名にする (#112)
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	// Litematica は任意 (入っていれば読み込んだ回路を配置にする)。コンパイル時だけ参照し、gametest の実行時には入れる。
 	// malilib はこの MOD 自身は使わない (#28)。Litematica の API が malilib の型を使うのでコンパイル時だけ参照し、
 	// gametest で Litematica を入れるときは一緒に入れる (Litematica が malilib を要る)。
 	// -PnoLitematica を付けると gametest から両方を外す (Litematica・malilib 無しでの起動と保存だけの経路を確かめる)
-	compileOnly "maven.modrinth:malilib:${project.malilib_version}"
-	compileOnly "maven.modrinth:litematica:${project.litematica_version}"
-	gametestCompileOnly "maven.modrinth:malilib:${project.malilib_version}"
-	gametestCompileOnly "maven.modrinth:litematica:${project.litematica_version}"
+	modCompileOnly "maven.modrinth:malilib:${project.malilib_version}"
+	modCompileOnly "maven.modrinth:litematica:${project.litematica_version}"
+	modGametestCompileOnly "maven.modrinth:malilib:${project.malilib_version}"
+	modGametestCompileOnly "maven.modrinth:litematica:${project.litematica_version}"
 
 	if (!project.hasProperty("noLitematica")) {
-		gametestRuntimeOnly "maven.modrinth:malilib:${project.malilib_version}"
-		gametestRuntimeOnly "maven.modrinth:litematica:${project.litematica_version}"
+		modGametestRuntimeOnly "maven.modrinth:malilib:${project.malilib_version}"
+		modGametestRuntimeOnly "maven.modrinth:litematica:${project.litematica_version}"
 	}
 
 	// MCEF Modern は任意 (入っていればメニューの redtact タブから redtact をゲーム内で開く。#46)。コンパイル時だけ参照する。
 	// -Pmcef を付けると gametest の実行時に入れる (初回は Chromium を取ってくるので時間がかかる)
-	compileOnly "maven.modrinth:mcef-modern:${project.mcef_modern_version}"
+	modCompileOnly "maven.modrinth:mcef-modern:${project.mcef_modern_version}"
 	compileOnly "me.friwi:jcef-api:${project.jcef_api_version}"
-	gametestCompileOnly "maven.modrinth:mcef-modern:${project.mcef_modern_version}"
+	modGametestCompileOnly "maven.modrinth:mcef-modern:${project.mcef_modern_version}"
 	gametestCompileOnly "me.friwi:jcef-api:${project.jcef_api_version}"
 
 	if (project.hasProperty("mcef")) {
-		gametestRuntimeOnly "maven.modrinth:mcef-modern:${project.mcef_modern_version}"
+		modGametestRuntimeOnly "maven.modrinth:mcef-modern:${project.mcef_modern_version}"
 	}
+
+	// 難読化ありの版 (1.21.x) の Loom は、remap した MOD の fabric.mod.json から同梱の jar (jar-in-jar) の一覧を消すので、
+	// 開発用の実行ではそれらが読まれない (本番ではゲームが読む)。ゲームテストの実行にだけ自分で入れる (#112)
+	if (obfuscated) {
+		if (!project.hasProperty("noLitematica")) {
+			modGametestRuntimeOnly "me.fallenbreath:conditional-mixin-fabric:${project.conditional_mixin_version}"
+		}
+
+		if (project.hasProperty("mcef")) {
+			gametestRuntimeOnly "me.friwi:jcef-api:${project.jcef_api_version}"
+			gametestRuntimeOnly("me.friwi:jcefmaven:${project.jcefmaven_version}") {
+				transitive = false // commons-compress・gson はゲームにある
+			}
+		}
+	}
+
+	// @Nullable など (jspecify)。1.21.11 からはゲームが持っているが、1.21.10 までは無いので自分で入れる (注釈だけで、実行には要らない)
+	compileOnly "org.jspecify:jspecify:${project.jspecify_version}"
+	gametestCompileOnly "org.jspecify:jspecify:${project.jspecify_version}"
+	testCompileOnly "org.jspecify:jspecify:${project.jspecify_version}"
 
 	testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 }
 
-processResources {
-	def version = project.version
-	inputs.property "version", version
+// 26.3 で描画の GPU の層が com.mojang.blaze3d から com.mojang.renderpearl.api に移った。ソースは 26.3 の名前で書き、
+// それより前の版では Stonecutter が import の名前を戻す (#112。クラスは 1 対 1 で対応する。; まで含めて、前方一致で別のクラスに当たらないように)
+stonecutter {
+	replacements.string(current.parsed.matches('>=26.3')) {
+		replace 'import com.mojang.blaze3d.GpuFormat;', 'import com.mojang.renderpearl.api.GpuFormat;'
+		replace 'import com.mojang.blaze3d.buffers.GpuBuffer;', 'import com.mojang.renderpearl.api.buffers.GpuBuffer;'
+		replace 'import com.mojang.blaze3d.buffers.GpuBufferSlice;', 'import com.mojang.renderpearl.api.buffers.GpuBufferSlice;'
+		replace 'import com.mojang.blaze3d.systems.RenderPass;', 'import com.mojang.renderpearl.api.commands.RenderPass;'
+		replace 'import com.mojang.blaze3d.systems.GpuDevice;', 'import com.mojang.renderpearl.api.device.GpuDevice;'
+		replace 'import com.mojang.blaze3d.IndexType;', 'import com.mojang.renderpearl.api.pipeline.IndexType;'
+		replace 'import com.mojang.blaze3d.PrimitiveTopology;', 'import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;'
+		replace 'import com.mojang.blaze3d.textures.AddressMode;', 'import com.mojang.renderpearl.api.textures.AddressMode;'
+		replace 'import com.mojang.blaze3d.textures.FilterMode;', 'import com.mojang.renderpearl.api.textures.FilterMode;'
+		replace 'import com.mojang.blaze3d.textures.GpuSampler;', 'import com.mojang.renderpearl.api.textures.GpuSampler;'
+		replace 'import com.mojang.blaze3d.textures.GpuTextureView;', 'import com.mojang.renderpearl.api.textures.GpuTextureView;'
+	}
 
-	filesMatching("fabric.mod.json") {
-		expand "version": version
+	// 26.2 で画面・トースト・オーバーレイの出し入れが Minecraft から Gui に、HUD の隠す・チャットが Gui.hud に移り、
+	// 光の設定と向きの行列の写しの名前が変わった。26.1 までの書き方へは受け手の名前ごとに戻す
+	// (左が古い書き方。ソースに古い書き方を書かない: 26.2 以降の版で新しい書き方に変わる)
+	replacements.string(current.parsed.matches('>=26.2')) {
+		replace 'mc.screen', 'mc.gui.screen()'
+		replace 'minecraft.screen', 'minecraft.gui.screen()'
+		replace 'getInstance().screen', 'getInstance().gui.screen()'
+		replace 'mc.setScreen(', 'mc.gui.setScreen('
+		replace 'minecraft.setScreen(', 'minecraft.gui.setScreen('
+		replace 'getInstance().setScreen(', 'getInstance().gui.setScreen('
+		replace 'mc.getToastManager()', 'mc.gui.toastManager()'
+		replace 'mc.getOverlay()', 'mc.gui.overlay()'
+		replace 'mc.options.hideGui', 'mc.gui.hud.isHidden()'
+		replace 'mc.gui.getChat()', 'mc.gui.hud.getChat()'
+		replace 'gameRenderer.getLighting()', 'gameRenderer.lighting()'
+		replace 'RenderSystem.getModelViewMatrix()', 'RenderSystem.getModelViewMatrixCopy()'
+		// ゲームテスト: Fabric のテストの API でもチャンクの描き終わりを待つ口が、ワールドからサーバへの接続に移った
+		replace 'sp.getClientLevel().waitForChunksRender()', 'sp.getConnection().waitForChunksRender()'
+	}
+
+	// 26.1 で GUI の描く道具が GuiGraphics から GuiGraphicsExtractor に、描く口が render… から extract… に変わり、
+	// Fabric API のクライアントのコマンドも ClientCommandManager から ClientCommands になった。1.21.x の書き方へ戻す
+	// (左が 1.21.x の書き方。ソースに書かない。GuiGraphics が GuiGraphicsExtractor の一部でも Stonecutter は二重に置き換えない)
+	replacements.string(current.parsed.matches('>=26.1')) {
+		replace 'GuiGraphics', 'GuiGraphicsExtractor'
+		replace 'render(', 'extractRenderState('
+		replace 'renderBackground(', 'extractBackground('
+		replace 'renderWidget(', 'extractWidgetRenderState('
+		replace 'renderContents(', 'extractContents('
+		replace 'renderContent(', 'extractContent('
+		replace 'renderSelection(', 'extractSelection('
+		replace 'renderScrollbar(', 'extractScrollbar('
+		replace 'renderListSeparators(', 'extractListSeparators('
+		replace 'renderListBackground(', 'extractListBackground('
+		replace 'g.drawString(', 'g.text('
+		replace 'g.renderItem(', 'g.item('
+		replace 'ClientCommandManager', 'ClientCommands'
+		// GUI の描く状態の置き場と、絵の中の絵を積む口・投影の行列のバッファ・光の絵・一覧の動かせるか・ブロックと色の見方の場所
+		replace 'net.minecraft.client.gui.render.state.', 'net.minecraft.client.renderer.state.gui.'
+		replace 'submitPicturesInPictureState(', 'addPicturesInPictureState('
+		replace 'PerspectiveProjectionMatrixBuffer', 'ProjectionMatrixBuffer'
+		replace 'gameRenderer.lightTexture().getTextureView()', 'gameRenderer.lightmap()'
+		replace 'scrollbarVisible()', 'scrollable()'
+		replace 'import net.minecraft.world.level.BlockAndTintGetter;', 'import net.minecraft.client.renderer.block.BlockAndTintGetter;'
+		// ゲームテスト: 画面の大きさを変え直す口・チャットのメッセージの置き場・Fabric のテストの API (待つ口・マウスのボタンを入れる口)。
+		// 待つ口は 26.2 の置き換え (getConnection → getClientLevel) のあとにさらに 1.21.x の名前へ (置き換えは書いた順に当たる)
+		replace 'mc.resizeDisplay()', 'mc.resizeGui()'
+		replace 'net.minecraft.client.GuiMessage', 'net.minecraft.client.multiplayer.chat.GuiMessage'
+		replace 'sp.getClientWorld().waitForChunksRender()', 'sp.getClientLevel().waitForChunksRender()'
+		replace 'invokeOnMouseButton(', 'invokeOnButton('
+	}
+
+	// 1.21.11 で ResourceLocation が Identifier に、ResourceKey#location が identifier に、Util の置き場が net.minecraft.util になった。
+	// 1.21.10 の書き方へ戻す (Identifier は BedrockBlockIdentifierResolver などの名前にも入っているので、使い方ごとに書く)
+	replacements.string(current.parsed.matches('>=1.21.11')) {
+		replace 'import net.minecraft.resources.ResourceLocation;', 'import net.minecraft.resources.Identifier;'
+		replace 'ResourceLocation.tryParse(', 'Identifier.tryParse('
+		replace 'ResourceLocation.fromNamespaceAndPath(', 'Identifier.fromNamespaceAndPath('
+		replace 'ResourceLocation.withDefaultNamespace(', 'Identifier.withDefaultNamespace('
+		replace 'ResourceLocation id =', 'Identifier id ='
+		replace 'ResourceLocation ID =', 'Identifier ID ='
+		replace 'dimension().location()', 'dimension().identifier()'
+		replace 'import net.minecraft.Util;', 'import net.minecraft.util.Util;'
+		replace 'net.minecraft.Util.getPlatform()', 'net.minecraft.util.Util.getPlatform()'
+		// ゲームのブロックの特別な描き方の取り出し (1.21.10 までは Supplier)
+		replace 'specialBlockModelRenderer().get()', 'specialBlockModelRenderer()'
+		// ゲームテスト: Fabric のテストの API のマウスの入口の名前・F3 の表示の切り替え
+		replace 'gametest.input.MouseAccessor', 'gametest.input.MouseHandlerAccessor'
+		replace '(MouseAccessor)', '(MouseHandlerAccessor)'
+		replace 'debugEntries.setF3Visible(', 'debugEntries.setOverlayVisible('
+	}
+}
+
+// fabric.mod.json と mixin の設定の、版で変わる値 (main と gametest の両方)
+def resourceValues = [
+	version             : project.version,
+	// 版で型の有る無しが違う mixin (ブロックの特別な描き方を読む口。26.1 からと 1.21.x で別)
+	version_mixins      : stonecutter.current.parsed.matches('>=26.1') ? '"BlockModelRenderStateAccessor",' : '"SpecialBlockModelRendererAccessor",',
+	minecraft_dependency: project.minecraft_dependency,
+	java_version        : project.java_version,
+	litematica_min      : project.litematica_min,
+	mcef_modern_min     : project.mcef_modern_min,
+]
+
+tasks.withType(ProcessResources).configureEach {
+	inputs.properties resourceValues
+
+	filesMatching(["fabric.mod.json", "*.mixins.json"]) {
+		expand resourceValues
+	}
+}
+
+// 本番と同じ形 (配る jar・本番の名前・本物の起動のしかた) でゲームを起動する (./gradlew :1.21.11:runProductionClient。#112)。
+// 難読化ありの版は remap した jar を配るので、開発用のゲームテストでは見つからない mixin の名前の書き換えの漏れなどをここで確かめる。
+// Fabric API だけを一緒に入れる。自分では閉じないので、タイトル画面まで出たらゲームを閉じる
+tasks.register("runProductionClient", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+	mods.from(obfuscated ? tasks.named("remapJar") : tasks.named("jar"))
+	def fabricApi = configurations.detachedConfiguration(dependencies.create("net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"))
+	fabricApi.transitive = false
+	mods.from(fabricApi)
+	// build の外に置く (build の下だと、build.gradle を変えたあとに Gradle が前の実行の残りとしてワールドや設定を消す)
+	runDir = layout.projectDirectory.dir("run/production")
+	useXVFB = false
+
+	// -PprodWorld=<ワールドの名前> でそのワールドに入る (run/production/saves に置いておく)
+	if (project.hasProperty("prodWorld")) {
+		programArgs.addAll("--quickPlaySingleplayer", project.property("prodWorld").toString())
 	}
 }
 
 // jar に MIT のライセンスを入れる (#105。統合版の対応表の出典は assets/redtact-live/bedrock/NOTICE.md)
 jar {
-	from("LICENSE") {
+	from(rootProject.file("LICENSE")) {
 		rename { "${it}_${base.archivesName.get()}" }
 	}
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
+	it.options.release = project.java_version as int
 	it.options.encoding = "UTF-8"
+	it.options.compilerArgs += ["-Xmaxerrs", "10000"] // 版を足すときにエラーを全部見る (#112)
 }
 
 java {
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+	sourceCompatibility = JavaVersion.toVersion(project.java_version)
+	targetCompatibility = JavaVersion.toVersion(project.java_version)
 }
 
 test {
 	useJUnitPlatform()
+	// テストは src/main/java などを mod/ からの相対パスで読む (版のプロジェクトは versions/<版>/ にあるので合わせる。#112)
+	workingDir = rootProject.projectDir
 
 	// 中継サーバを相手にした通しの確認: ./gradlew test -PliveServer=http://localhost:8797
 	if (project.hasProperty("liveServer")) {

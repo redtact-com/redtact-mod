@@ -1,5 +1,7 @@
 package com.redtact.live.gui.kit;
 
+import com.redtact.live.compat.CompatButton;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
@@ -7,7 +9,6 @@ import org.jspecify.annotations.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.InputWithModifiers;
@@ -21,7 +22,7 @@ import net.minecraft.network.chat.Component;
  * 名前が幅に入らず「…」で切ったときは、ツールチップの先頭に名前の全文を出す (マウスを重ねるかキーボードで選んだとき。#41)。
  * アイコンのボタン ({@link #icon}) は名前を描かず、いつもツールチップの先頭に出す (#69)。
  */
-public class RButton extends AbstractButton {
+public class RButton extends CompatButton {
 	/** ボタンの高さ (ふつう)。 */
 	public static final int H = 16;
 
@@ -194,12 +195,12 @@ public class RButton extends AbstractButton {
 
 	@Override
 	protected boolean isValidClickButton(MouseButtonInfo buttonInfo) {
-		return buttonInfo.button() == 1 || (acceptRightClick && buttonInfo.button() == 3);
+		return buttonInfo.button() == InputConstants.MOUSE_BUTTON_LEFT || (acceptRightClick && buttonInfo.button() == InputConstants.MOUSE_BUTTON_RIGHT);
 	}
 
 	@Override
 	public void onPress(InputWithModifiers input) {
-		lastRightClick = input instanceof MouseButtonEvent e && e.button() == 3;
+		lastRightClick = input instanceof MouseButtonEvent e && e.button() == InputConstants.MOUSE_BUTTON_RIGHT;
 		action.onPress(this);
 	}
 
